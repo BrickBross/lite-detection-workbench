@@ -60,8 +60,7 @@ export default function ExportPage() {
         worker.postMessage({ payload, repoName, options })
       })
 
-      const blobPart = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-      const blob = new Blob([blobPart], { type: 'application/zip' })
+      const blob = new Blob([bytes as unknown as BlobPart], { type: 'application/zip' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
