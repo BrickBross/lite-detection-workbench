@@ -1,5 +1,4 @@
 /// <reference lib="webworker" />
-/* eslint-disable no-restricted-globals */
 import JSZip from 'jszip'
 import type { ExportOptions, ExportPayload } from '../lib/exportTypes'
 import { promptPack } from '../lib/promptPack'

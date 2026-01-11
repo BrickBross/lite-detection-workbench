@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { db } from '../lib/db'
 import type { Detection, Objective } from '../lib/schemas'
 import { motion } from 'framer-motion'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts'
-
-type Row = { name: string; value: number }
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie } from 'recharts'
 
 export default function Coverage() {
   const [objectives, setObjectives] = useState<Objective[]>([])
