@@ -16,8 +16,6 @@ export default function Signals() {
   useEffect(() => {
     const load = async () => setItems(await db.signals.orderBy('updatedAt').reverse().toArray())
     load()
-    const sub = db.on('changes', load)
-    return () => sub.unsubscribe()
   }, [])
 
   return (

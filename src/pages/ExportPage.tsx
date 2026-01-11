@@ -23,8 +23,6 @@ export default function ExportPage() {
       setDetections(await db.detections.toArray())
     }
     load()
-    const sub = db.on('changes', load)
-    return () => sub.unsubscribe()
   }, [])
 
   const meta: ProjectMeta = useMemo(
@@ -62,7 +60,8 @@ export default function ExportPage() {
         worker.postMessage({ payload, repoName, options })
       })
 
-      const blob = new Blob([bytes], { type: 'application/zip' })
+      const blobPart = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+      const blob = new Blob([blobPart], { type: 'application/zip' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

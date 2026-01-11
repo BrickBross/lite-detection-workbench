@@ -16,8 +16,6 @@ export default function Detections() {
       setSignals(await db.signals.toArray())
     }
     load()
-    const sub = db.on('changes', load)
-    return () => sub.unsubscribe()
   }, [])
 
   const objMap = useMemo(() => new Map(objectives.map((o) => [o.id, o.name])), [objectives])

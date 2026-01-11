@@ -12,8 +12,6 @@ export default function Gaps() {
       setDetections(await db.detections.toArray())
     }
     load()
-    const sub = db.on('changes', load)
-    return () => sub.unsubscribe()
   }, [])
 
   const detByObj = useMemo(() => {

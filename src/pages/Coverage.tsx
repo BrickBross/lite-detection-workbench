@@ -16,8 +16,6 @@ export default function Coverage() {
       setDetections(await db.detections.toArray())
     }
     load()
-    const sub = db.on('changes', load)
-    return () => sub.unsubscribe()
   }, [])
 
   const byPlatform = useMemo(() => {

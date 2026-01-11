@@ -1,7 +1,8 @@
+import type { ChangeEvent } from 'react'
 import { useMemo, useState } from 'react'
 import { db } from '../lib/db'
-import { MITRE_TECHNIQUES } from '../lib/mitre'
 import { nextId, isoNow } from '../lib/ids'
+import { MITRE_TECHNIQUES } from '../lib/mitre'
 import type { Objective } from '../lib/schemas'
 import { Platform } from '../lib/schemas'
 
@@ -51,11 +52,23 @@ export default function ObjectiveWizard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <Label>Objective name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Detect LSASS memory access by non-system processes" />
+          <Input
+            value={name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            placeholder="Detect LSASS memory access by non-system processes"
+          />
           <Label className="mt-3">Description</Label>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the attacker behavior in plain language..." />
+          <Textarea
+            value={description}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
+            placeholder="Describe the attacker behavior in plain language..."
+          />
           <Label className="mt-3">Rationale (optional)</Label>
-          <Textarea value={rationale} onChange={(e) => setRationale(e.target.value)} placeholder="Why does this matter? What risk does it reduce?" />
+          <Textarea
+            value={rationale}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)}
+            placeholder="Why does this matter? What risk does it reduce?"
+          />
         </Card>
 
         <Card>
@@ -64,7 +77,7 @@ export default function ObjectiveWizard() {
             <select
               className="rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
               value={mitre}
-              onChange={(e) => {
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                 const t = mitreOptions.find((x) => x.technique === e.target.value)
                 setMitre(e.target.value)
                 if (t) setTactic(t.tactic)
@@ -72,11 +85,11 @@ export default function ObjectiveWizard() {
             >
               {mitreOptions.map((t) => (
                 <option key={t.technique} value={t.technique}>
-                  {t.technique} — {t.name}
+                  {t.technique} - {t.name}
                 </option>
               ))}
             </select>
-            <Input value={tactic} onChange={(e) => setTactic(e.target.value)} />
+            <Input value={tactic} onChange={(e: ChangeEvent<HTMLInputElement>) => setTactic(e.target.value)} />
           </div>
 
           <Label className="mt-3">Target platforms</Label>
@@ -94,7 +107,11 @@ export default function ObjectiveWizard() {
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
               <Label>Status</Label>
-              <select className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value as any)}>
+              <select
+                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                value={status}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
+              >
                 <option value="planned">planned</option>
                 <option value="blocked">blocked</option>
                 <option value="implemented">implemented</option>
@@ -104,7 +121,11 @@ export default function ObjectiveWizard() {
             </div>
             <div>
               <Label>Telemetry readiness</Label>
-              <select className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm" value={telemetryReadiness} onChange={(e) => setTelemetryReadiness(e.target.value as any)}>
+              <select
+                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                value={telemetryReadiness}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
+              >
                 <option value="available">available</option>
                 <option value="partial">partial</option>
                 <option value="missing">missing</option>
@@ -115,7 +136,10 @@ export default function ObjectiveWizard() {
       </div>
 
       <div className="flex items-center justify-end gap-3">
-        <a href="/lite-detection-workbench/objectives" className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40">
+        <a
+          href="/lite-detection-workbench/objectives"
+          className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40"
+        >
           Cancel
         </a>
         <button
@@ -137,10 +161,21 @@ function Label({ children, className = '' }: any) {
   return <div className={`text-xs font-semibold text-zinc-300 ${className}`}>{children}</div>
 }
 function Input(props: any) {
-  return <input {...props} className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600" />
+  return (
+    <input
+      {...props}
+      className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+    />
+  )
 }
 function Textarea(props: any) {
-  return <textarea {...props} rows={4} className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600" />
+  return (
+    <textarea
+      {...props}
+      rows={4}
+      className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+    />
+  )
 }
 function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
   return (
@@ -157,3 +192,4 @@ function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: (
     </button>
   )
 }
+

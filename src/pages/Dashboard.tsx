@@ -8,7 +8,7 @@ export default function Dashboard() {
   const [coverage, setCoverage] = useState<{ technique: string; covered: number; total: number }[]>([])
 
   useEffect(() => {
-    const sub = db.on('changes', async () => {
+    const load = async () => {
       const [o, s, d] = await Promise.all([db.objectives.count(), db.signals.count(), db.detections.count()])
       setCounts({ objectives: o, signals: s, detections: d })
       const objs = await db.objectives.toArray()
@@ -25,23 +25,8 @@ export default function Dashboard() {
           total: 1,
         })),
       )
-    })
-    // trigger initial
-    ;(async () => {
-      const [o, s, d] = await Promise.all([db.objectives.count(), db.signals.count(), db.detections.count()])
-      setCounts({ objectives: o, signals: s, detections: d })
-      const objs = await db.objectives.toArray()
-      const covered = new Map<string, number>()
-      for (const obj of objs) for (const m of obj.mitre) covered.set(m.technique, (covered.get(m.technique) ?? 0) + 1)
-      setCoverage(
-        MITRE_TECHNIQUES.map((t) => ({
-          technique: `${t.technique} (${t.tactic})`,
-          covered: covered.get(t.technique) ?? 0,
-          total: 1,
-        })),
-      )
-    })()
-    return () => sub.unsubscribe()
+    }
+    load()
   }, [])
 
   const headline = useMemo(() => {

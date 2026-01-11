@@ -1,6 +1,6 @@
 import { PropsWithChildren } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { Shield, Sparkles, Wand2, Boxes, Download, Info, Radar, Database, ListChecks } from 'lucide-react'
+import { AlertTriangle, Boxes, Database, Download, Info, Package, PieChart, Radar, Shield, Sparkles, Wand2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const nav = [
@@ -29,7 +29,7 @@ export default function Shell({ children }: PropsWithChildren) {
             </div>
             <div className="leading-tight">
               <div className="text-sm font-semibold">Lite Detection Workbench</div>
-              <div className="text-[11px] text-zinc-400">local-first • export-to-git</div>
+              <div className="text-[11px] text-zinc-400">local-first → export-to-git</div>
             </div>
           </Link>
 
@@ -56,11 +56,7 @@ export default function Shell({ children }: PropsWithChildren) {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
           {children}
         </motion.div>
       </main>
@@ -74,3 +70,4 @@ export default function Shell({ children }: PropsWithChildren) {
     </div>
   )
 }
+

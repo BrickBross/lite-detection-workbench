@@ -10,8 +10,6 @@ export default function MitreMatrix() {
   useEffect(() => {
     const load = async () => setObjectives(await db.objectives.toArray())
     load()
-    const sub = db.on('changes', load)
-    return () => sub.unsubscribe()
   }, [])
 
   const covered = useMemo(() => {

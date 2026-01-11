@@ -8,8 +8,6 @@ export default function Objectives() {
   useEffect(() => {
     const load = async () => setItems(await db.objectives.orderBy('updatedAt').reverse().toArray())
     load()
-    const sub = db.on('changes', load)
-    return () => sub.unsubscribe()
   }, [])
 
   return (

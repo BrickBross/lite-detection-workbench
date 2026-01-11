@@ -162,8 +162,6 @@ export default function DetectionBuilder() {
       if (!objectiveId && objs[0]) setObjectiveId(objs[0].id)
     }
     load()
-    const sub = db.on('changes', load)
-    return () => sub.unsubscribe()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
