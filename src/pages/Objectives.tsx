@@ -389,7 +389,10 @@ function ObjectiveCard({
           </div>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <div className="text-[rgb(var(--faint))]">Updated {new Date(o.updatedAt).toLocaleString()}</div>
+          <div className="flex flex-col items-end text-[11px] text-[rgb(var(--faint))]">
+            <div>Updated {new Date(o.updatedAt).toLocaleString()}</div>
+            <div>Created {new Date(o.createdAt).toLocaleString()}</div>
+          </div>
           <button
             type="button"
             onClick={onView}
@@ -399,17 +402,17 @@ function ObjectiveCard({
           </button>
           <button
             type="button"
-            onClick={onExport}
-            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
-          >
-            Export JSON
-          </button>
-          <button
-            type="button"
             onClick={onEdit}
             className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
           >
             Edit
+          </button>
+          <button
+            type="button"
+            onClick={onExport}
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+          >
+            Export JSON
           </button>
         </div>
       </div>
