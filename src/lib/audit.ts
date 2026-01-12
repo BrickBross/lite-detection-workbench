@@ -1,10 +1,10 @@
 import { db } from './db'
 import { isoNow } from './ids'
-import type { AuditEvent, AuditEntityType, AuditAction } from './schemas'
+import type { AuditEvent } from './schemas'
 
 export async function recordAuditEvent(e: {
-  entityType: AuditEntityType
-  action: AuditAction
+  entityType: AuditEvent['entityType']
+  action: AuditEvent['action']
   entityId?: string
   summary?: string
   before?: unknown
@@ -27,4 +27,3 @@ export async function recordAuditEvent(e: {
     // Ignore audit failures; core UX should still work.
   }
 }
-
