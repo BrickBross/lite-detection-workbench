@@ -344,7 +344,7 @@ function Badge({ label, value, tone }: { label: string; value: string; tone: Bad
       ].join(' ')}
     >
       <span className="text-[11px] opacity-80">{label}:</span>
-      <span className="text-[rgb(var(--text))]">{value}</span>
+      <span className="text-[rgb(var(--text))]">{formatOptionLabel(value)}</span>
     </span>
   )
 }
