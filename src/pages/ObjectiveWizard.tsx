@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
+import { recordAuditEvent } from '../lib/audit'
 import { nextId, isoNow } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
 import { TelemetryPicker } from '../lib/TelemetryPicker'
@@ -78,6 +79,13 @@ export default function ObjectiveWizard() {
       updatedAt: now,
     }
     await db.objectives.add(obj)
+    await recordAuditEvent({
+      entityType: 'objective',
+      action: 'create',
+      entityId: id,
+      summary: `Created ${id}`,
+      after: obj,
+    })
     navigate('/objectives')
   }
 

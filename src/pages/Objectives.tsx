@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { db } from '../lib/db'
+import { recordAuditEvent } from '../lib/audit'
 import { isoNow } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
 import { TelemetryPicker } from '../lib/TelemetryPicker'
@@ -104,6 +105,10 @@ export default function Objectives() {
             setItems((cur) => cur.map((x) => (x.id === next.id ? next : x)))
             setEditing(null)
           }}
+          onDeleted={(id) => {
+            setItems((cur) => cur.filter((x) => x.id !== id))
+            setEditing(null)
+          }}
         />
       ) : null}
     </div>
@@ -119,11 +124,13 @@ function EditObjectiveModal({
   mitreOptions,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   o: Objective
   mitreOptions: { technique: string; tactic: string; name: string }[]
   onClose: () => void
   onSaved: (o: Objective) => void
+  onDeleted: (id: string) => void
 }) {
   const [name, setName] = useState(o.name)
   const [description, setDescription] = useState(o.description)
@@ -161,7 +168,44 @@ function EditObjectiveModal({
       updatedAt: now,
     }
     await db.objectives.put(next)
+    await recordAuditEvent({
+      entityType: 'objective',
+      action: 'update',
+      entityId: o.id,
+      summary: `Updated ${o.id}`,
+      before: o,
+      after: next,
+    })
     onSaved(next)
+  }
+
+  const del = async () => {
+    if (!confirm(`Delete ${o.id}? This will also delete any detections linked to this objective.`)) return
+
+    const linkedDetections = await db.detections.where('objectiveId').equals(o.id).toArray()
+
+    for (const d of linkedDetections) await db.detections.delete(d.id)
+    await db.objectives.delete(o.id)
+
+    for (const d of linkedDetections) {
+      await recordAuditEvent({
+        entityType: 'detection',
+        action: 'delete',
+        entityId: d.id,
+        summary: `Deleted ${d.id} (objective ${o.id} removed)`,
+        before: d,
+      })
+    }
+    await recordAuditEvent({
+      entityType: 'objective',
+      action: 'delete',
+      entityId: o.id,
+      summary: `Deleted ${o.id}`,
+      before: o,
+      meta: { deletedDetections: linkedDetections.map((d) => d.id) },
+    })
+
+    onDeleted(o.id)
   }
 
   return (
@@ -311,6 +355,13 @@ function EditObjectiveModal({
         </div>
 
         <div className="mt-5 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={del}
+            className="mr-auto rounded-2xl border border-red-900/50 bg-red-950/20 px-4 py-2 text-sm text-red-200 hover:bg-red-950/35"
+          >
+            Delete
+          </button>
           <button
             type="button"
             onClick={onClose}

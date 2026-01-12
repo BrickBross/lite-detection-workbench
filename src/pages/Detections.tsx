@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db } from '../lib/db'
+import { recordAuditEvent } from '../lib/audit'
 import { isoNow, nextId } from '../lib/ids'
 import type { Detection, Objective } from '../lib/schemas'
 import { Platform } from '../lib/schemas'
@@ -61,6 +62,13 @@ export default function Detections() {
                     onClick={async () => {
                       if (!confirm(`Delete ${d.id}?`)) return
                       await db.detections.delete(d.id)
+                      await recordAuditEvent({
+                        entityType: 'detection',
+                        action: 'delete',
+                        entityId: d.id,
+                        summary: `Deleted ${d.id}`,
+                        before: d,
+                      })
                     }}
                     className="rounded-2xl border border-zinc-800 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-900/40"
                   >
@@ -112,7 +120,9 @@ function EditModal({ d, onClose }: { d: Detection; onClose: () => void }) {
   const [testPlan, setTestPlan] = useState(d.testPlan ?? '')
 
   const save = async () => {
-    await db.detections.update(d.id, {
+    const before = d
+    const after: Detection = {
+      ...d,
       title,
       severity,
       content,
@@ -120,6 +130,23 @@ function EditModal({ d, onClose }: { d: Detection; onClose: () => void }) {
       tuningNotes,
       testPlan,
       updatedAt: isoNow(),
+    }
+    await db.detections.update(d.id, {
+      title,
+      severity,
+      content,
+      falsePositives,
+      tuningNotes,
+      testPlan,
+      updatedAt: after.updatedAt,
+    })
+    await recordAuditEvent({
+      entityType: 'detection',
+      action: 'update',
+      entityId: d.id,
+      summary: `Updated ${d.id}`,
+      before,
+      after,
     })
     onClose()
   }
@@ -232,6 +259,13 @@ function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose
       updatedAt: now,
     }
     await db.detections.add(det)
+    await recordAuditEvent({
+      entityType: 'detection',
+      action: 'create',
+      entityId: id,
+      summary: `Created ${id}`,
+      after: det,
+    })
     onClose()
   }
 

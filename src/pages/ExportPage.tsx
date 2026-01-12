@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { db } from '../lib/db'
+import { recordAuditEvent } from '../lib/audit'
 import type { ExportOptions, ExportPayload } from '../lib/exportTypes'
 import { isoNow } from '../lib/ids'
 import type { Detection, Objective, ProjectMeta, Signal } from '../lib/schemas'
@@ -67,6 +68,17 @@ export default function ExportPage() {
       a.download = `${repoName}.zip`
       a.click()
       URL.revokeObjectURL(url)
+
+      await recordAuditEvent({
+        entityType: 'export',
+        action: 'export',
+        summary: `Exported ${repoName}.zip`,
+        meta: {
+          repoName,
+          options,
+          counts: { objectives: objectives.length, signals: signals.length, detections: detections.length },
+        },
+      })
     } finally {
       setDownloading(false)
     }

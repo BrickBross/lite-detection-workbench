@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie'
-import type { Objective, Signal, Detection, ProjectMeta } from './schemas'
+import type { AuditEvent, Objective, Signal, Detection, ProjectMeta } from './schemas'
 import type { MitreTechniqueRecord } from './mitreData'
 
 export class WorkbenchDB extends Dexie {
@@ -8,6 +8,7 @@ export class WorkbenchDB extends Dexie {
   detections!: Table<Detection, string>
   meta!: Table<ProjectMeta, string>
   mitreTechniques!: Table<MitreTechniqueRecord, string>
+  audit!: Table<AuditEvent, number>
 
   constructor() {
     super('lite-detection-workbench')
@@ -23,6 +24,14 @@ export class WorkbenchDB extends Dexie {
       detections: 'id, objectiveId, platform, updatedAt',
       meta: 'name',
       mitreTechniques: 'id, technique, tactic, name',
+    })
+    this.version(3).stores({
+      objectives: 'id, status, telemetryReadiness, updatedAt',
+      signals: 'id, logSource, updatedAt',
+      detections: 'id, objectiveId, platform, updatedAt',
+      meta: 'name',
+      mitreTechniques: 'id, technique, tactic, name',
+      audit: '++id, ts, entityType, entityId, action',
     })
   }
 }

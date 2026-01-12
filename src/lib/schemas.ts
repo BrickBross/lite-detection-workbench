@@ -85,3 +85,20 @@ export const ProjectSchema = z.object({
 })
 
 export type ProjectMeta = z.infer<typeof ProjectSchema>
+
+export const AuditEntityType = z.enum(['objective', 'detection', 'signal', 'export'])
+export const AuditAction = z.enum(['create', 'update', 'delete', 'export'])
+
+export const AuditEventSchema = z.object({
+  id: z.number().optional(),
+  ts: z.string(),
+  entityType: AuditEntityType,
+  entityId: z.string().optional(),
+  action: AuditAction,
+  summary: z.string().optional(),
+  before: z.unknown().optional(),
+  after: z.unknown().optional(),
+  meta: z.record(z.unknown()).optional(),
+})
+
+export type AuditEvent = z.infer<typeof AuditEventSchema>
