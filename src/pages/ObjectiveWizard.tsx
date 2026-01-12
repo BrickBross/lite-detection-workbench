@@ -12,6 +12,8 @@ import { defaultSettingsSnapshot, ensureSettings, withCurrentOption } from '../l
 
 export default function ObjectiveWizard() {
   const navigate = useNavigate()
+  const GUIDE_COMPLETED_KEY = 'ldw.objectiveGuide.completed'
+  const GUIDE_FORCE_KEY = 'ldw.objectiveGuide.force'
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [mitre, setMitre] = useState<string>('T1003')
@@ -31,6 +33,7 @@ export default function ObjectiveWizard() {
   const [telemetryNotes, setTelemetryNotes] = useState('')
   const [queryAvailable, setQueryAvailable] = useState(false)
   const [query, setQuery] = useState('')
+  const [guideStep, setGuideStep] = useState<number | null>(null)
 
   const mitreOptions = useMitreTechniques()
 
@@ -44,6 +47,12 @@ export default function ObjectiveWizard() {
       setSeverity((cur) => (loaded.severityOptions.includes(cur) ? cur : loaded.severityOptions[0] ?? cur))
       setUrgency((cur) => (loaded.urgencyOptions.includes(cur) ? cur : loaded.urgencyOptions[0] ?? cur))
     })
+  }, [])
+
+  useEffect(() => {
+    const forced = localStorage.getItem(GUIDE_FORCE_KEY) === '1'
+    const completed = localStorage.getItem(GUIDE_COMPLETED_KEY) === '1'
+    if (forced || !completed) setGuideStep(0)
   }, [])
 
   const canSave = name.trim().length >= 3 && description.trim().length >= 3 && responsePlan.trim().length >= 10
@@ -122,7 +131,46 @@ export default function ObjectiveWizard() {
       summary: `Created ${id}`,
       after: obj,
     })
+    localStorage.setItem(GUIDE_COMPLETED_KEY, '1')
+    localStorage.removeItem(GUIDE_FORCE_KEY)
     navigate('/objectives')
+  }
+
+  const guideActive = guideStep !== null
+  const guideSteps = [
+    {
+      title: 'Name + describe',
+      body: 'Add a short name and description for the objective.',
+      canProceed: name.trim().length >= 3 && description.trim().length >= 3,
+    },
+    {
+      title: 'Map MITRE + telemetry',
+      body: 'Pick a technique (optional to change) and add at least one telemetry source.',
+      canProceed: requiredTelemetrySources.length > 0,
+    },
+    {
+      title: 'Add response plan',
+      body: 'Write a response plan (10+ characters).',
+      canProceed: responsePlan.trim().length >= 10,
+    },
+    {
+      title: 'Save objective',
+      body: 'Click Save Objective to finish the guide.',
+      canProceed: canSave,
+    },
+  ]
+  const activeGuide = guideActive ? guideSteps[guideStep ?? 0] : null
+  const guideIsLast = guideStep === guideSteps.length - 1
+  const guideFocus = (step: number) =>
+    guideActive && guideStep === step ? 'rounded-2xl ring-2 ring-[rgb(var(--accent))]' : ''
+  const skipGuide = () => {
+    localStorage.setItem(GUIDE_COMPLETED_KEY, '1')
+    localStorage.removeItem(GUIDE_FORCE_KEY)
+    setGuideStep(null)
+  }
+  const nextGuideStep = () => {
+    if (!guideActive || !activeGuide?.canProceed) return
+    setGuideStep((cur) => (cur === null ? null : Math.min(cur + 1, guideSteps.length - 1)))
   }
 
   return (
@@ -141,12 +189,14 @@ export default function ObjectiveWizard() {
             value={name}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             placeholder="Detect LSASS memory access by non-system processes"
+            className={guideFocus(0)}
           />
           <Label className="mt-3">Description</Label>
           <Textarea
             value={description}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
             placeholder="Describe the attacker behavior in plain language..."
+            className={guideFocus(0)}
           />
           <Label className="mt-3">Rationale (optional)</Label>
           <Textarea
@@ -180,6 +230,7 @@ export default function ObjectiveWizard() {
             value={responsePlan}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setResponsePlan(e.target.value)}
             placeholder="How would this alert be responded to (triage steps, containment, validation)? Who would be contacted (SOC, IR, system owner, app team, etc.)?"
+            className={guideFocus(2)}
           />
 
           <div className="mt-3">
@@ -253,55 +304,59 @@ export default function ObjectiveWizard() {
         </Card>
 
         <Card>
-          <Label>MITRE mapping (lite)</Label>
-          <input
-            value={mitreSearch}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setMitreSearch(e.target.value)}
-            placeholder="Search MITRE techniques (e.g., T1003, credential dumping)"
-            className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
-          />
-          <div className="mt-2 text-xs text-[rgb(var(--faint))]">
-            {mitreSearch.trim() ? `Matches: ${filteredMitreOptions.length} (showing up to 200)` : `Techniques: ${mitreOptions.length}`}
-          </div>
-          {searchingMitre && !selectedInMitreMatches && selectedMitre ? (
+          <div className={guideFocus(1)}>
+            <Label>MITRE mapping (lite)</Label>
+            <input
+              value={mitreSearch}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setMitreSearch(e.target.value)}
+              placeholder="Search MITRE techniques (e.g., T1003, credential dumping)"
+              className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
+            />
             <div className="mt-2 text-xs text-[rgb(var(--faint))]">
-              Current selection: {selectedMitre.technique} - {selectedMitre.name} ({selectedMitre.tactic})
+              {mitreSearch.trim() ? `Matches: ${filteredMitreOptions.length} (showing up to 200)` : `Techniques: ${mitreOptions.length}`}
             </div>
-          ) : null}
-          <div className="grid grid-cols-2 gap-3">
-            <select
-              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
-              value={selectedInMitreMatches ? selectedMitreKey : ''}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                if (!e.target.value) return
-                const [technique, nextTactic] = e.target.value.split('|')
-                setMitre(technique)
-                setTactic(nextTactic ?? 'Unknown')
-                setMitreSearch('')
-              }}
-            >
-              {selectedInMitreMatches ? null : (
-                <option value="" disabled>
-                  Select from matches...
-                </option>
-              )}
-              {filteredMitreOptions.map((t) => (
-                <option key={`${t.technique}|${t.tactic}`} value={`${t.technique}|${t.tactic}`}>
-                  {t.technique} - {t.name} ({t.tactic})
-                </option>
-              ))}
-            </select>
-            <Input value={tactic} readOnly title="Tactic is derived from the selected technique." />
+            {searchingMitre && !selectedInMitreMatches && selectedMitre ? (
+              <div className="mt-2 text-xs text-[rgb(var(--faint))]">
+                Current selection: {selectedMitre.technique} - {selectedMitre.name} ({selectedMitre.tactic})
+              </div>
+            ) : null}
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
+                value={selectedInMitreMatches ? selectedMitreKey : ''}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                  if (!e.target.value) return
+                  const [technique, nextTactic] = e.target.value.split('|')
+                  setMitre(technique)
+                  setTactic(nextTactic ?? 'Unknown')
+                  setMitreSearch('')
+                }}
+              >
+                {selectedInMitreMatches ? null : (
+                  <option value="" disabled>
+                    Select from matches...
+                  </option>
+                )}
+                {filteredMitreOptions.map((t) => (
+                  <option key={`${t.technique}|${t.tactic}`} value={`${t.technique}|${t.tactic}`}>
+                    {t.technique} - {t.name} ({t.tactic})
+                  </option>
+                ))}
+              </select>
+              <Input value={tactic} readOnly title="Tactic is derived from the selected technique." />
+            </div>
           </div>
 
           <Label className="mt-3">Required telemetry sources</Label>
-          <TelemetryPicker
-            selectedIds={requiredTelemetrySources}
-            onChangeSelectedIds={setSelectedTelemetrySources}
-            otherTelemetrySourcesText={otherTelemetrySourcesText}
-            onChangeOtherTelemetrySourcesText={setOtherTelemetrySourcesText}
-            defaultCollapsed
-          />
+          <div className={guideFocus(1)}>
+            <TelemetryPicker
+              selectedIds={requiredTelemetrySources}
+              onChangeSelectedIds={setSelectedTelemetrySources}
+              otherTelemetrySourcesText={otherTelemetrySourcesText}
+              onChangeOtherTelemetrySourcesText={setOtherTelemetrySourcesText}
+              defaultCollapsed
+            />
+          </div>
 
           {selectedTelemetry.length ? (
             <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.2)] p-3">
@@ -457,12 +512,52 @@ export default function ObjectiveWizard() {
         <button
           onClick={save}
           disabled={!canSave}
-          className="rounded-2xl bg-[rgb(var(--accent))] px-5 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] disabled:opacity-40"
+          className={[
+            'rounded-2xl bg-[rgb(var(--accent))] px-5 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] disabled:opacity-40',
+            guideFocus(3),
+          ].join(' ')}
         >
           Save Objective
         </button>
         </div>
       </div>
+
+      {guideActive && activeGuide ? (
+        <div className="fixed bottom-4 right-4 z-40 w-[min(320px,90vw)] rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-4 shadow-lg">
+          <div className="text-xs text-[rgb(var(--faint))]">
+            Step {guideStep! + 1} of {guideSteps.length}
+          </div>
+          <div className="mt-1 text-sm font-semibold">{activeGuide.title}</div>
+          <div className="mt-1 text-xs text-[rgb(var(--muted))]">{activeGuide.body}</div>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={skipGuide}
+              className="rounded-2xl border border-[rgb(var(--border))] px-3 py-1.5 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
+            >
+              Skip guide
+            </button>
+            {!guideIsLast ? (
+              <button
+                type="button"
+                onClick={nextGuideStep}
+                disabled={!activeGuide.canProceed}
+                className="ml-auto rounded-2xl bg-[rgb(var(--accent))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--accent-fg))] disabled:opacity-40"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={skipGuide}
+                className="ml-auto rounded-2xl border border-[rgb(var(--border))] px-3 py-1.5 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
+              >
+                Close
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

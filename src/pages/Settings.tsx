@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import {
   defaultSettingsSnapshot,
@@ -35,6 +36,7 @@ const parseList = (text: string) => {
 }
 
 export default function Settings() {
+  const navigate = useNavigate()
   const [settings, setSettings] = useState<WorkbenchSettings>(defaultSettingsSnapshot())
   const [draft, setDraft] = useState<SettingsDraft>({
     statusText: '',
@@ -139,6 +141,12 @@ export default function Settings() {
     location.reload()
   }
 
+  const launchObjectiveGuide = () => {
+    localStorage.setItem('ldw.objectiveGuide.force', '1')
+    localStorage.removeItem('ldw.objectiveGuide.completed')
+    navigate('/wizard')
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -195,6 +203,13 @@ export default function Settings() {
           className="rounded-2xl bg-[rgb(var(--accent))] px-4 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))]"
         >
           Save settings
+        </button>
+        <button
+          type="button"
+          onClick={launchObjectiveGuide}
+          className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-4 py-2 text-sm text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+        >
+          Launch objective guide
         </button>
         <button
           type="button"
