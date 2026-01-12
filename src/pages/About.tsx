@@ -62,6 +62,28 @@ export default function About() {
           assets (like the bundled JS/CSS and MITRE data files), and exporting JSON files you explicitly download. No
           telemetry, analytics, or remote logging is sent.
         </p>
+        <div className="mt-3 text-xs font-semibold text-[rgb(var(--text-muted))]">Local storage details</div>
+        <ul className="mt-2 space-y-2 text-[rgb(var(--muted))]">
+          <li>
+            IndexedDB (<span className="text-[rgb(var(--text))]">lite-detection-workbench</span>) stores your objectives,
+            detections, audit history, settings, and cached MITRE techniques so the app can load instantly and work
+            offline.
+          </li>
+          <li>
+            When you create, edit, or delete an objective or detection, those changes are written directly to IndexedDB
+            and reflected in the UI.
+          </li>
+          <li>
+            The MITRE technique list is cached in IndexedDB after the first load so searches stay fast and require no
+            external lookups.
+          </li>
+          <li>
+            localStorage keeps lightweight preferences like your theme (
+            <span className="text-[rgb(var(--text))]">ldw.theme</span>) and whether the optional objective guide has been
+            completed (<span className="text-[rgb(var(--text))]">ldw.objectiveGuide.*</span>).
+          </li>
+          <li>Clear all data removes the local database and preferences for this browser origin.</li>
+        </ul>
       </div>
     </div>
   )
