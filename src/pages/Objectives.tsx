@@ -359,7 +359,7 @@ function EditObjectiveModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-      <div className="w-full max-w-3xl rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
+      <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold">Edit objective</div>
@@ -374,7 +374,8 @@ function EditObjectiveModal({
           </button>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
+          <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <Label>Name</Label>
             <Input value={name} onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)} />
@@ -545,9 +546,10 @@ function EditObjectiveModal({
               </div>
             </div>
           </Card>
+          </div>
         </div>
 
-        <div className="mt-5 flex items-center justify-end gap-3">
+        <div className="mt-4 flex items-center justify-end gap-3 border-t border-[rgb(var(--border))] pt-4">
           <button
             type="button"
             onClick={del}
