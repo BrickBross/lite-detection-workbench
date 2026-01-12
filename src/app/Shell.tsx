@@ -7,7 +7,6 @@ const nav = [
   { to: '/', label: 'Objectives', icon: Boxes },
   { to: '/mitre', label: 'MITRE', icon: Shield },
   { to: '/wizard', label: 'New Objective', icon: Wand2 },
-  { to: '/build', label: 'Build', icon: Shield },
   { to: '/export', label: 'Export', icon: Download },
   { to: '/about', label: 'About', icon: Info },
 ]

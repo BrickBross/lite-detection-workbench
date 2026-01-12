@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom'
 import { db } from '../lib/db'
 import { isoNow } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
-import { TELEMETRY_CATALOG, telemetryLabel } from '../lib/telemetryCatalog'
+import { TelemetryPicker } from '../lib/TelemetryPicker'
+import { telemetryLabel } from '../lib/telemetryCatalog'
 import type { Objective } from '../lib/schemas'
 
 export default function Objectives() {
@@ -245,31 +246,13 @@ function EditObjectiveModal({
             </button>
 
             <Label className="mt-4">Required telemetry sources</Label>
-            <div className="mt-2 space-y-4">
-              {TELEMETRY_CATALOG.map((cat) => (
-                <div key={cat.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-3">
-                  <div className="text-xs font-semibold text-zinc-300">{cat.label}</div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {cat.sources.map((s) => (
-                      <Toggle
-                        key={s.id}
-                        on={requiredTelemetrySources.includes(s.id)}
-                        label={s.label}
-                        hint={s.details.join(' • ')}
-                        onClick={() =>
-                          setRequiredTelemetrySources((cur) =>
-                            cur.includes(s.id) ? cur.filter((x) => x !== s.id) : [...cur, s.id],
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Label className="mt-3">Other telemetry sources (optional)</Label>
-            <Input value={otherTelemetrySourcesText} onChange={(e: ChangeEvent<HTMLInputElement>) => setOtherTelemetrySourcesText(e.target.value)} />
+            <TelemetryPicker
+              selectedIds={requiredTelemetrySources}
+              onChangeSelectedIds={setRequiredTelemetrySources}
+              otherTelemetrySourcesText={otherTelemetrySourcesText}
+              onChangeOtherTelemetrySourcesText={setOtherTelemetrySourcesText}
+              defaultCollapsed
+            />
 
             <Label className="mt-3">Telemetry notes (optional)</Label>
             <Textarea value={telemetryNotes} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTelemetryNotes(e.target.value)} />
@@ -352,20 +335,5 @@ function Textarea(props: any) {
       rows={4}
       className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
     />
-  )
-}
-function Toggle({ on, label, hint, onClick }: { on: boolean; label: string; hint?: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        'rounded-2xl border px-3 py-2 text-left text-xs transition',
-        on ? 'border-zinc-600 bg-zinc-900' : 'border-zinc-800 bg-zinc-950 hover:bg-zinc-900/40',
-      ].join(' ')}
-    >
-      <div className="font-semibold text-zinc-200">{label}</div>
-      <div className="mt-1 text-zinc-500">{hint ?? (on ? 'selected' : 'click to select')}</div>
-    </button>
   )
 }

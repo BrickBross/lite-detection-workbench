@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { db } from '../lib/db'
+import { isoNow, nextId } from '../lib/ids'
 import type { Detection, Objective } from '../lib/schemas'
-import { isoNow } from '../lib/ids'
+import { Platform } from '../lib/schemas'
 
 export default function Detections() {
   const [detections, setDetections] = useState<Detection[]>([])
   const [objectives, setObjectives] = useState<Objective[]>([])
   const [editing, setEditing] = useState<Detection | null>(null)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -26,9 +27,12 @@ export default function Detections() {
           <h1 className="text-xl font-semibold">Detections</h1>
           <p className="text-sm text-zinc-400">Review, edit, and score detections before export.</p>
         </div>
-        <Link to="/build" className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-white">
-          New (Build)
-        </Link>
+        <button
+          onClick={() => setCreating(true)}
+          className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-white"
+        >
+          New detection
+        </button>
       </div>
 
       {detections.length === 0 ? (
@@ -74,6 +78,7 @@ export default function Detections() {
       )}
 
       {editing ? <EditModal d={editing} onClose={() => setEditing(null)} /> : null}
+      {creating ? <CreateModal objectives={objectives} onClose={() => setCreating(false)} /> : null}
     </div>
   )
 }
@@ -201,3 +206,124 @@ function Textarea(props: any) {
   return <textarea {...rest} rows={rows} className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600" />
 }
 
+function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose: () => void }) {
+  const [objectiveId, setObjectiveId] = useState(objectives[0]?.id ?? '')
+  const [platform, setPlatform] = useState<Detection['platform']>('sigma_generic')
+  const [severity, setSeverity] = useState<Detection['severity']>('medium')
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('# New detection\n')
+
+  const canSave = !!objectiveId && title.trim().length >= 3 && content.trim().length >= 1
+
+  const save = async () => {
+    if (!canSave) return
+    const existing = await db.detections.toCollection().primaryKeys()
+    const id = nextId('RULE', existing as string[])
+    const now = isoNow()
+    const det: Detection = {
+      id,
+      objectiveId,
+      signalIds: [],
+      platform,
+      title: title.trim(),
+      severity,
+      content,
+      createdAt: now,
+      updatedAt: now,
+    }
+    await db.detections.add(det)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+      <div className="w-full max-w-3xl rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold">New detection</div>
+            <div className="mt-1 text-xs text-zinc-500">Create a starter artifact to tune and export.</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-2xl border border-zinc-800 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-900/40"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="space-y-3">
+            <Field label="Objective">
+              <select
+                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                value={objectiveId}
+                onChange={(e: any) => setObjectiveId(e.target.value)}
+              >
+                {objectives.length === 0 ? <option value="">No objectives yet</option> : null}
+                {objectives.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.id} - {o.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Platform">
+              <select
+                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                value={platform}
+                onChange={(e: any) => setPlatform(e.target.value)}
+              >
+                {Platform.options.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Detection severity">
+              <select
+                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                value={severity}
+                onChange={(e: any) => setSeverity(e.target.value)}
+              >
+                {['low', 'medium', 'high', 'critical'].map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Title">
+              <Input value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="Short detection title" />
+            </Field>
+          </div>
+
+          <div>
+            <Field label="Content">
+              <Textarea rows={16} value={content} onChange={(e: any) => setContent(e.target.value)} />
+            </Field>
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={save}
+            disabled={!canSave}
+            className="rounded-2xl bg-zinc-100 px-5 py-2 text-sm font-semibold text-zinc-900 disabled:opacity-40"
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
