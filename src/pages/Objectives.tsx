@@ -414,9 +414,8 @@ function ObjectiveCard({
       </div>
       <div className="mt-3 text-xs text-[rgb(var(--faint))]">MITRE: {(o.mitre ?? []).map((m) => `${m.tactic}/${m.technique}`).join(', ')}</div>
       <div className="mt-3 flex justify-end text-[11px] text-[rgb(var(--faint))]">
-        <div className="flex flex-col items-end">
-          <div>Updated {new Date(o.updatedAt).toLocaleString()}</div>
-          <div>Created {new Date(o.createdAt).toLocaleString()}</div>
+        <div className="text-right">
+          Updated {new Date(o.updatedAt).toLocaleString()} • Created {new Date(o.createdAt).toLocaleString()}
         </div>
       </div>
     </div>
