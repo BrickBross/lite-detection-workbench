@@ -1,6 +1,6 @@
 import { PropsWithChildren, useEffect, useMemo, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { Boxes, Clock, Info, Menu, Palette, Settings, Shield, X } from 'lucide-react'
+import { Boxes, Clock, Info, Menu, Palette, Settings, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const nav = [
