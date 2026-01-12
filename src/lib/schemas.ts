@@ -22,6 +22,7 @@ export const ObjectiveSchema = z.object({
   severity: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   urgency: z.enum(['p0', 'p1', 'p2', 'p3']).default('p2'),
   requiredTelemetrySources: z.array(z.string()).default([]),
+  otherTelemetrySources: z.array(z.string()).default([]),
   telemetryNotes: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),

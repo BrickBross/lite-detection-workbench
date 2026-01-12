@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { db } from '../lib/db'
 import { isoNow } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
-import { TELEMETRY_SOURCES } from '../lib/telemetrySources'
+import { TELEMETRY_CATALOG, telemetryLabel } from '../lib/telemetryCatalog'
 import type { Objective } from '../lib/schemas'
 
 export default function Objectives() {
@@ -49,7 +49,7 @@ export default function Objectives() {
                     <Badge>{o.severity}</Badge>
                     <Badge>{o.urgency}</Badge>
                     {(o.requiredTelemetrySources ?? []).slice(0, 4).map((s) => (
-                      <Badge key={s}>{s}</Badge>
+                      <Badge key={s}>{telemetryLabel(s)}</Badge>
                     ))}
                     {(o.requiredTelemetrySources ?? []).length > 4 ? <Badge>+{(o.requiredTelemetrySources ?? []).length - 4} more</Badge> : null}
                   </div>
@@ -111,6 +111,7 @@ function EditObjectiveModal({
   const [severity, setSeverity] = useState<Objective['severity']>(o.severity ?? 'medium')
   const [urgency, setUrgency] = useState<Objective['urgency']>(o.urgency ?? 'p2')
   const [requiredTelemetrySources, setRequiredTelemetrySources] = useState<string[]>(o.requiredTelemetrySources ?? [])
+  const [otherTelemetrySourcesText, setOtherTelemetrySourcesText] = useState((o.otherTelemetrySources ?? []).join(', '))
   const [telemetryNotes, setTelemetryNotes] = useState(o.telemetryNotes ?? '')
   const [mitre, setMitre] = useState(o.mitre.length ? o.mitre : [{ tactic: 'Credential Access', technique: 'T1003' }])
 
@@ -129,6 +130,10 @@ function EditObjectiveModal({
       severity,
       urgency,
       requiredTelemetrySources,
+      otherTelemetrySources: otherTelemetrySourcesText
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean),
       telemetryNotes: telemetryNotes.trim() ? telemetryNotes.trim() : undefined,
       mitre,
       updatedAt: now,
@@ -164,7 +169,7 @@ function EditObjectiveModal({
             <Textarea value={rationale} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)} />
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div>
-                <Label>Severity</Label>
+                <Label>Detection severity</Label>
                 <select
                   className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
                   value={severity}
@@ -184,8 +189,8 @@ function EditObjectiveModal({
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
                 >
                   <option value="p0">p0 (urgent)</option>
-                  <option value="p1">p1</option>
-                  <option value="p2">p2</option>
+                  <option value="p1">p1 (within 60 days)</option>
+                  <option value="p2">p2 (within 120 days)</option>
                   <option value="p3">p3 (backlog)</option>
                 </select>
               </div>
@@ -240,18 +245,31 @@ function EditObjectiveModal({
             </button>
 
             <Label className="mt-4">Required telemetry sources</Label>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {TELEMETRY_SOURCES.map((s) => (
-                <Toggle
-                  key={s}
-                  on={requiredTelemetrySources.includes(s)}
-                  label={s}
-                  onClick={() =>
-                    setRequiredTelemetrySources((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))
-                  }
-                />
+            <div className="mt-2 space-y-4">
+              {TELEMETRY_CATALOG.map((cat) => (
+                <div key={cat.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-3">
+                  <div className="text-xs font-semibold text-zinc-300">{cat.label}</div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {cat.sources.map((s) => (
+                      <Toggle
+                        key={s.id}
+                        on={requiredTelemetrySources.includes(s.id)}
+                        label={s.label}
+                        hint={s.details.join(' • ')}
+                        onClick={() =>
+                          setRequiredTelemetrySources((cur) =>
+                            cur.includes(s.id) ? cur.filter((x) => x !== s.id) : [...cur, s.id],
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
+
+            <Label className="mt-3">Other telemetry sources (optional)</Label>
+            <Input value={otherTelemetrySourcesText} onChange={(e: ChangeEvent<HTMLInputElement>) => setOtherTelemetrySourcesText(e.target.value)} />
 
             <Label className="mt-3">Telemetry notes (optional)</Label>
             <Textarea value={telemetryNotes} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTelemetryNotes(e.target.value)} />
@@ -336,7 +354,7 @@ function Textarea(props: any) {
     />
   )
 }
-function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
+function Toggle({ on, label, hint, onClick }: { on: boolean; label: string; hint?: string; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -347,7 +365,7 @@ function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: (
       ].join(' ')}
     >
       <div className="font-semibold text-zinc-200">{label}</div>
-      <div className="mt-1 text-zinc-500">{on ? 'selected' : 'click to select'}</div>
+      <div className="mt-1 text-zinc-500">{hint ?? (on ? 'selected' : 'click to select')}</div>
     </button>
   )
 }

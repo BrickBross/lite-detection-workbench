@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import type { Objective, Detection, Signal } from '../lib/schemas'
+import type { Detection, Objective } from '../lib/schemas'
 import { nextId, isoNow } from '../lib/ids'
 
 type Template = {
@@ -27,7 +27,7 @@ description: ${o.description}
 references: []
 author: lite-detection-workbench
 tags:
-  - attack.${o.mitre[0]?.tactic?.toLowerCase().replace(/\s+/g, '_') ?? 'tactic'}
+  - attack.${o.mitre[0]?.tactic?.toLowerCase().replace(/\\s+/g, '_') ?? 'tactic'}
   - attack.${o.mitre[0]?.technique ?? 'T0000'}
 logsource:
   product: windows
@@ -153,13 +153,10 @@ export default function DetectionBuilder() {
   const [objectiveId, setObjectiveId] = useState<string>('')
   const [templateId, setTemplateId] = useState<string>(templates[0].id)
   const [preview, setPreview] = useState<Partial<Detection> | null>(null)
-  const [signals, setSignals] = useState<Signal[]>([])
-  const [selectedSignals, setSelectedSignals] = useState<string[]>([])
 
   useEffect(() => {
     const load = async () => {
       const objs = await db.objectives.orderBy('updatedAt').reverse().toArray()
-      setSignals(await db.signals.orderBy('updatedAt').reverse().toArray())
       setObjectives(objs)
       if (!objectiveId && objs[0]) setObjectiveId(objs[0].id)
     }
@@ -183,7 +180,7 @@ export default function DetectionBuilder() {
     const det: Detection = {
       id,
       objectiveId: selectedObjective.id,
-      signalIds: selectedSignals,
+      signalIds: [],
       platform: preview.platform!,
       title: preview.title ?? `${selectedObjective.name} (${preview.platform})`,
       severity: (preview.severity ?? 'medium') as any,
@@ -216,7 +213,7 @@ export default function DetectionBuilder() {
             {objectives.length === 0 ? <option value="">No objectives yet</option> : null}
             {objectives.map((o) => (
               <option key={o.id} value={o.id}>
-                {o.id} — {o.name}
+                {o.id} - {o.name}
               </option>
             ))}
           </select>
@@ -238,31 +235,7 @@ export default function DetectionBuilder() {
             {selectedTemplate.description}
           </div>
 
-<Label className="mt-3">Signals (optional)</Label>
-<div className="mt-2 max-h-40 overflow-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-2 text-xs text-zinc-300">
-  {signals.length === 0 ? (
-    <div className="p-2 text-zinc-500">No signals yet. Add some in Signals.</div>
-  ) : (
-    <div className="space-y-2 p-2">
-      {signals.map((s) => (
-        <label key={s.id} className="flex cursor-pointer items-center gap-2">
-          <input
-            type="checkbox"
-            checked={selectedSignals.includes(s.id)}
-            onChange={(e) => {
-              setSelectedSignals((cur) => (e.target.checked ? [...cur, s.id] : cur.filter((x) => x !== s.id)))
-            }}
-          />
-          <span className="text-zinc-200">{s.id}</span>
-          <span className="text-zinc-500">—</span>
-          <span className="truncate">{s.name}</span>
-        </label>
-      ))}
-    </div>
-  )}
-</div>
-
-<div className="mt-4 flex items-center justify-end gap-3">
+          <div className="mt-4 flex items-center justify-end gap-3">
             <button
               onClick={save}
               disabled={!selectedObjective}
@@ -298,3 +271,4 @@ function Card({ children }: any) {
 function Label({ children }: any) {
   return <div className="text-xs font-semibold text-zinc-300">{children}</div>
 }
+

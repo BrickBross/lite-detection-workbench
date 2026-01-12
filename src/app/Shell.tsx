@@ -1,17 +1,11 @@
 import { PropsWithChildren } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { AlertTriangle, Boxes, Database, Download, Info, Package, PieChart, Radar, Shield, Sparkles, Wand2 } from 'lucide-react'
+import { Boxes, Download, Info, Shield, Wand2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const nav = [
-  { to: '/', label: 'Dashboard', icon: Sparkles },
-  { to: '/assistant', label: 'Assistant', icon: Radar },
-  { to: '/objectives', label: 'Objectives', icon: Boxes },
-  { to: '/signals', label: 'Signals', icon: Database },
+  { to: '/', label: 'Objectives', icon: Boxes },
   { to: '/mitre', label: 'MITRE', icon: Shield },
-  { to: '/coverage', label: 'Coverage', icon: PieChart },
-  { to: '/gaps', label: 'Gaps', icon: AlertTriangle },
-  { to: '/packs', label: 'Packs', icon: Package },
   { to: '/wizard', label: 'New Objective', icon: Wand2 },
   { to: '/build', label: 'Build', icon: Shield },
   { to: '/export', label: 'Export', icon: Download },
@@ -70,4 +64,3 @@ export default function Shell({ children }: PropsWithChildren) {
     </div>
   )
 }
-

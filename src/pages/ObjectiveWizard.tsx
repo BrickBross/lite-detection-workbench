@@ -4,8 +4,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { nextId, isoNow } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
+import { TELEMETRY_CATALOG } from '../lib/telemetryCatalog'
 import type { Objective } from '../lib/schemas'
-import { TELEMETRY_SOURCES } from '../lib/telemetrySources'
 
 export default function ObjectiveWizard() {
   const navigate = useNavigate()
@@ -19,6 +19,7 @@ export default function ObjectiveWizard() {
   const [severity, setSeverity] = useState<Objective['severity']>('medium')
   const [urgency, setUrgency] = useState<Objective['urgency']>('p2')
   const [requiredTelemetrySources, setRequiredTelemetrySources] = useState<string[]>([])
+  const [otherTelemetrySourcesText, setOtherTelemetrySourcesText] = useState('')
   const [telemetryNotes, setTelemetryNotes] = useState('')
 
   const mitreOptions = useMitreTechniques()
@@ -40,6 +41,10 @@ export default function ObjectiveWizard() {
       severity,
       urgency,
       requiredTelemetrySources,
+      otherTelemetrySources: otherTelemetrySourcesText
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean),
       telemetryNotes: telemetryNotes.trim() ? telemetryNotes.trim() : undefined,
       createdAt: now,
       updatedAt: now,
@@ -80,7 +85,7 @@ export default function ObjectiveWizard() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
-              <Label>Severity</Label>
+              <Label>Detection severity</Label>
               <select
                 className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
                 value={severity}
@@ -100,8 +105,8 @@ export default function ObjectiveWizard() {
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
               >
                 <option value="p0">p0 (urgent)</option>
-                <option value="p1">p1</option>
-                <option value="p2">p2</option>
+                <option value="p1">p1 (within 60 days)</option>
+                <option value="p2">p2 (within 120 days)</option>
                 <option value="p3">p3 (backlog)</option>
               </select>
             </div>
@@ -130,24 +135,41 @@ export default function ObjectiveWizard() {
           </div>
 
           <Label className="mt-3">Required telemetry sources</Label>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {TELEMETRY_SOURCES.map((s) => (
-              <Toggle
-                key={s}
-                on={requiredTelemetrySources.includes(s)}
-                label={s}
-                onClick={() =>
-                  setRequiredTelemetrySources((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))
-                }
-              />
+          <div className="mt-2 space-y-4">
+            {TELEMETRY_CATALOG.map((cat) => (
+              <div key={cat.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-3">
+                <div className="text-xs font-semibold text-zinc-300">{cat.label}</div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {cat.sources.map((s) => (
+                    <Toggle
+                      key={s.id}
+                      on={requiredTelemetrySources.includes(s.id)}
+                      label={s.label}
+                      hint={s.details.join(' • ')}
+                      onClick={() =>
+                        setRequiredTelemetrySources((cur) =>
+                          cur.includes(s.id) ? cur.filter((x) => x !== s.id) : [...cur, s.id],
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
+
+          <Label className="mt-3">Other telemetry sources (optional)</Label>
+          <Input
+            value={otherTelemetrySourcesText}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setOtherTelemetrySourcesText(e.target.value)}
+            placeholder="Comma-separated (e.g., custom.app.audit, vendorX.alerts)"
+          />
 
           <Label className="mt-3">Telemetry notes (optional)</Label>
           <Textarea
             value={telemetryNotes}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTelemetryNotes(e.target.value)}
-            placeholder="Any assumptions, required fields, log locations, retention requirements, known gaps…"
+            placeholder="Any assumptions, required fields, log locations, retention requirements, known gaps..."
           />
 
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -221,7 +243,7 @@ function Textarea(props: any) {
     />
   )
 }
-function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
+function Toggle({ on, label, hint, onClick }: { on: boolean; label: string; hint?: string; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -232,7 +254,7 @@ function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: (
       ].join(' ')}
     >
       <div className="font-semibold text-zinc-200">{label}</div>
-      <div className="mt-1 text-zinc-500">{on ? 'selected' : 'click to select'}</div>
+      <div className="mt-1 text-zinc-500">{hint ?? (on ? 'selected' : 'click to select')}</div>
     </button>
   )
 }

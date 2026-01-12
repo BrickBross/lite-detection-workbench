@@ -3,6 +3,7 @@ import JSZip from 'jszip'
 import type { ExportOptions, ExportPayload } from '../lib/exportTypes'
 import { promptPack } from '../lib/promptPack'
 import type { Detection, Objective, Signal } from '../lib/schemas'
+import { TELEMETRY_BY_ID } from '../lib/telemetryCatalog'
 
 function yamlEscape(s: string) {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
@@ -29,17 +30,28 @@ function toYaml(obj: any, indent = 0): string {
 }
 
 function mdObjective(o: Objective) {
-  const telemetrySourcesLine = (o.requiredTelemetrySources ?? []).length
-    ? `**Required telemetry:** ${(o.requiredTelemetrySources ?? []).join(', ')}  \n`
+  const required = o.requiredTelemetrySources ?? []
+  const other = o.otherTelemetrySources ?? []
+  const telemetryLines = required.length
+    ? [
+        '**Required telemetry sources:**',
+        ...required.map((id) => {
+          const row = TELEMETRY_BY_ID.get(id)
+          if (!row) return `- ${id}`
+          return `- ${row.label}: ${row.details.join(' • ')}`
+        }),
+        '',
+      ].join('\n')
     : ''
+  const otherLines = other.length ? `**Other telemetry sources:** ${other.join(', ')}  \n` : ''
   const telemetryNotesLine = o.telemetryNotes ? `**Telemetry notes:** ${o.telemetryNotes}  \n` : ''
   return `# ${o.id}: ${o.name}
 
-**Severity:** ${o.severity}  
-**Urgency:** ${o.urgency}  
+**Detection severity:** ${o.severity ?? 'medium'}  
+**Urgency:** ${o.urgency ?? 'p2'}  
 **Status:** ${o.status}  
 **Telemetry readiness:** ${o.telemetryReadiness}  
-${telemetrySourcesLine}${telemetryNotesLine}
+${telemetryLines}${otherLines}${telemetryNotesLine}
 
 ## Description
 ${o.description}
@@ -64,9 +76,22 @@ function mdObjectivePack({
   detections: Detection[]
   signals: Signal[]
 }) {
-  const telemetrySourcesLines = (objective.requiredTelemetrySources ?? []).length
-    ? ['## Required telemetry sources', (objective.requiredTelemetrySources ?? []).map((x) => `- ${x}`).join('\n'), '']
+  const required = objective.requiredTelemetrySources ?? []
+  const other = objective.otherTelemetrySources ?? []
+  const telemetrySourcesLines = required.length
+    ? [
+        '## Required telemetry sources',
+        required
+          .map((id) => {
+            const row = TELEMETRY_BY_ID.get(id)
+            if (!row) return `- ${id}`
+            return `- ${row.label}: ${row.details.join(' • ')}`
+          })
+          .join('\n'),
+        '',
+      ]
     : []
+  const otherTelemetryLines = other.length ? ['## Other telemetry sources', other.map((x) => `- ${x}`).join('\n'), ''] : []
   const telemetryNotesLines = objective.telemetryNotes ? ['## Telemetry notes', objective.telemetryNotes, ''] : []
   const sigLines = signals.length ? signals.map((s) => `- ${s.id}: ${s.name} (${s.logSource})`).join('\n') : '- (none)'
   const detLines = detections.length
@@ -79,7 +104,7 @@ function mdObjectivePack({
   return [
     `# ${objective.id}: ${objective.name}`,
     '',
-    `**Severity:** ${objective.severity}`,
+    `**Detection severity:** ${objective.severity ?? 'medium'}`,
     `**Urgency:** ${objective.urgency}`,
     `**Status:** ${objective.status}`,
     `**Telemetry readiness:** ${objective.telemetryReadiness}`,
@@ -91,6 +116,7 @@ function mdObjectivePack({
     objective.mitre.map((m) => `- ${m.tactic} / ${m.technique}${m.subtechnique ? `.${m.subtechnique}` : ''}`).join('\n'),
     '',
     ...telemetrySourcesLines,
+    ...otherTelemetryLines,
     ...telemetryNotesLines,
     `## Signals`,
     sigLines,
