@@ -389,10 +389,6 @@ function ObjectiveCard({
           </div>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <div className="flex flex-col items-end text-[11px] text-[rgb(var(--faint))]">
-            <div>Updated {new Date(o.updatedAt).toLocaleString()}</div>
-            <div>Created {new Date(o.createdAt).toLocaleString()}</div>
-          </div>
           <button
             type="button"
             onClick={onView}
@@ -417,6 +413,12 @@ function ObjectiveCard({
         </div>
       </div>
       <div className="mt-3 text-xs text-[rgb(var(--faint))]">MITRE: {(o.mitre ?? []).map((m) => `${m.tactic}/${m.technique}`).join(', ')}</div>
+      <div className="mt-3 flex justify-end text-[11px] text-[rgb(var(--faint))]">
+        <div className="flex flex-col items-end">
+          <div>Updated {new Date(o.updatedAt).toLocaleString()}</div>
+          <div>Created {new Date(o.createdAt).toLocaleString()}</div>
+        </div>
+      </div>
     </div>
   )
 }
