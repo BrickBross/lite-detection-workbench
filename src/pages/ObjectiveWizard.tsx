@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { nextId, isoNow } from '../lib/ids'

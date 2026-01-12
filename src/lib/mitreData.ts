@@ -43,7 +43,7 @@ export function parseMitreAttackStix(jsonText: string): { techniques: MitreTechn
   let doc: any
   try {
     doc = JSON.parse(jsonText)
-  } catch (e) {
+  } catch {
     throw new Error('Invalid JSON (failed to parse)')
   }
 
@@ -86,4 +86,3 @@ export async function saveMitreTechniques(records: MitreTechniqueRecord[]) {
     await db.mitreTechniques.bulkPut(records)
   })
 }
-

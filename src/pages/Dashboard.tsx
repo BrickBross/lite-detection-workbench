@@ -28,7 +28,6 @@ export default function Dashboard() {
       )
     }
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mitreTechniques])
 
   const headline = useMemo(() => {
