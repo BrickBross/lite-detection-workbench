@@ -26,6 +26,8 @@ export const ObjectiveSchema = z.object({
   status: ObjectiveStatus,
   telemetryReadiness: z.enum(['unknown', 'available', 'partial', 'missing']),
   rationale: z.string().optional(),
+  responsePlan: z.string().min(10).optional(),
+  externalReferences: z.array(z.string().min(3)).default([]),
   owner: z.string().optional(),
   severity: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   urgency: z.enum(['p0', 'p1', 'p2', 'p3']).default('p2'),

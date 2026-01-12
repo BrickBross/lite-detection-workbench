@@ -19,6 +19,8 @@ export default function ObjectiveWizard() {
   const [status, setStatus] = useState<Objective['status']>('planned')
   const [telemetryReadiness, setTelemetryReadiness] = useState<Objective['telemetryReadiness']>('partial')
   const [rationale, setRationale] = useState('')
+  const [responsePlan, setResponsePlan] = useState('')
+  const [externalReferences, setExternalReferences] = useState<string[]>([''])
   const [severity, setSeverity] = useState<Objective['severity']>('medium')
   const [urgency, setUrgency] = useState<Objective['urgency']>('p2')
   const [requiredTelemetrySources, setRequiredTelemetrySources] = useState<string[]>([])
@@ -28,7 +30,7 @@ export default function ObjectiveWizard() {
 
   const mitreOptions = useMitreTechniques()
 
-  const canSave = name.trim().length >= 3 && description.trim().length >= 3
+  const canSave = name.trim().length >= 3 && description.trim().length >= 3 && responsePlan.trim().length >= 10
 
   const filteredMitreOptions = useMemo(() => {
     const q = mitreSearch.trim().toLowerCase()
@@ -74,6 +76,10 @@ export default function ObjectiveWizard() {
       status,
       telemetryReadiness,
       rationale: rationale.trim() ? rationale.trim() : undefined,
+      responsePlan: responsePlan.trim(),
+      externalReferences: externalReferences
+        .map((x) => x.trim())
+        .filter(Boolean),
       severity,
       urgency,
       requiredTelemetrySources,
@@ -126,6 +132,50 @@ export default function ObjectiveWizard() {
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)}
             placeholder="Why does this matter? What risk does it reduce?"
           />
+          <Label className="mt-3">Response (required)</Label>
+          <Textarea
+            value={responsePlan}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setResponsePlan(e.target.value)}
+            placeholder="How would this alert be responded to (triage steps, containment, validation)? Who would be contacted (SOC, IR, system owner, app team, etc.)?"
+          />
+
+          <div className="mt-3">
+            <div className="flex items-center justify-between">
+              <Label>External references (optional)</Label>
+              <button
+                type="button"
+                onClick={() => setExternalReferences((cur) => (cur.length >= 20 ? cur : [...cur, '']))}
+                className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                title="Add another URL"
+              >
+                +
+              </button>
+            </div>
+            <div className="mt-2 space-y-2">
+              {externalReferences.map((v, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    className="mt-0"
+                    value={v}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setExternalReferences((cur) => cur.map((x, idx) => (idx === i ? e.target.value : x)))
+                    }
+                    placeholder="https://..."
+                  />
+                  {externalReferences.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setExternalReferences((cur) => cur.filter((_, idx) => idx !== i))}
+                      className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                      title="Remove"
+                    >
+                      A-
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
@@ -366,7 +416,10 @@ function Input(props: any) {
   return (
     <input
       {...props}
-      className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+      className={[
+        'mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600',
+        props.className ?? '',
+      ].join(' ')}
     />
   )
 }
@@ -375,7 +428,10 @@ function Textarea(props: any) {
     <textarea
       {...props}
       rows={4}
-      className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+      className={[
+        'mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600',
+        props.className ?? '',
+      ].join(' ')}
     />
   )
 }

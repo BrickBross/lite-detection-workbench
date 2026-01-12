@@ -26,7 +26,9 @@ export default function Objectives() {
     return items.filter((o) => {
       const mitreText = (o.mitre ?? []).map((m) => `${m.tactic} ${m.technique} ${m.subtechnique ?? ''}`).join(' ')
       const telemetryText = (o.requiredTelemetrySources ?? []).join(' ') + ' ' + (o.otherTelemetrySources ?? []).join(' ')
-      const hay = `${o.id} ${o.name} ${o.description} ${o.status} ${o.telemetryReadiness} ${o.severity ?? ''} ${o.urgency ?? ''} ${mitreText} ${telemetryText}`.toLowerCase()
+      const refsText = (o.externalReferences ?? []).join(' ')
+      const hay =
+        `${o.id} ${o.name} ${o.description} ${o.responsePlan ?? ''} ${o.status} ${o.telemetryReadiness} ${o.severity ?? ''} ${o.urgency ?? ''} ${mitreText} ${telemetryText} ${refsText}`.toLowerCase()
       return hay.includes(query)
     })
   }, [items, q])
@@ -160,6 +162,10 @@ function EditObjectiveModal({
   const [name, setName] = useState(o.name)
   const [description, setDescription] = useState(o.description)
   const [rationale, setRationale] = useState(o.rationale ?? '')
+  const [responsePlan, setResponsePlan] = useState(o.responsePlan ?? '')
+  const [externalReferences, setExternalReferences] = useState<string[]>(
+    o.externalReferences && o.externalReferences.length ? o.externalReferences : [''],
+  )
   const [status, setStatus] = useState<Objective['status']>(o.status)
   const [telemetryReadiness, setTelemetryReadiness] = useState<Objective['telemetryReadiness']>(o.telemetryReadiness)
   const [severity, setSeverity] = useState<Objective['severity']>(o.severity ?? 'medium')
@@ -169,7 +175,7 @@ function EditObjectiveModal({
   const [telemetryNotes, setTelemetryNotes] = useState(o.telemetryNotes ?? '')
   const [mitre, setMitre] = useState(o.mitre.length ? o.mitre : [{ tactic: 'Credential Access', technique: 'T1003' }])
 
-  const canSave = name.trim().length >= 3 && description.trim().length >= 3 && mitre.length > 0
+  const canSave = name.trim().length >= 3 && description.trim().length >= 3 && responsePlan.trim().length >= 10 && mitre.length > 0
 
   const save = async () => {
     if (!canSave) return
@@ -179,6 +185,10 @@ function EditObjectiveModal({
       name: name.trim(),
       description: description.trim(),
       rationale: rationale.trim() ? rationale.trim() : undefined,
+      responsePlan: responsePlan.trim(),
+      externalReferences: externalReferences
+        .map((x) => x.trim())
+        .filter(Boolean),
       status,
       telemetryReadiness,
       severity,
@@ -258,6 +268,50 @@ function EditObjectiveModal({
             <Textarea value={description} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)} />
             <Label className="mt-3">Rationale (optional)</Label>
             <Textarea value={rationale} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)} />
+            <Label className="mt-3">Response (required)</Label>
+            <Textarea
+              value={responsePlan}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setResponsePlan(e.target.value)}
+              placeholder="How would this alert be responded to (triage steps, containment, validation)? Who would be contacted (SOC, IR, system owner, app team, etc.)?"
+            />
+
+            <div className="mt-3">
+              <div className="flex items-center justify-between">
+                <Label>External references (optional)</Label>
+                <button
+                  type="button"
+                  onClick={() => setExternalReferences((cur) => (cur.length >= 20 ? cur : [...cur, '']))}
+                  className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                  title="Add another URL"
+                >
+                  +
+                </button>
+              </div>
+              <div className="mt-2 space-y-2">
+                {externalReferences.map((v, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input
+                      className="mt-0"
+                      value={v}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setExternalReferences((cur) => cur.map((x, idx) => (idx === i ? e.target.value : x)))
+                      }
+                      placeholder="https://..."
+                    />
+                    {externalReferences.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setExternalReferences((cur) => cur.filter((_, idx) => idx !== i))}
+                        className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                        title="Remove"
+                      >
+                        A-
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div>
                 <Label>Detection severity</Label>
