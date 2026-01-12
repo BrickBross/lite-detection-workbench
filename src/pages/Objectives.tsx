@@ -13,6 +13,7 @@ import { defaultSettingsSnapshot, ensureSettings, withCurrentOption, type Workbe
 export default function Objectives() {
   const [items, setItems] = useState<Objective[]>([])
   const [editing, setEditing] = useState<Objective | null>(null)
+  const [viewing, setViewing] = useState<Objective | null>(null)
   const [q, setQ] = useState('')
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const [groupBy, setGroupBy] = useState<'none' | 'mitre' | 'telemetry'>('none')
@@ -270,7 +271,7 @@ export default function Objectives() {
       ) : groupBy === 'none' ? (
         <div className="grid gap-3">
           {filtered.map((o) => (
-            <ObjectiveCard key={o.id} o={o} onEdit={() => setEditing(o)} onExport={() => exportObjective(o)} />
+            <ObjectiveCard key={o.id} o={o} onView={() => setViewing(o)} onEdit={() => setEditing(o)} onExport={() => exportObjective(o)} />
           ))}
         </div>
       ) : (
@@ -296,7 +297,13 @@ export default function Objectives() {
                 </div>
                 <div className="mt-3 grid gap-3">
                   {g.items.map((o) => (
-                    <ObjectiveCard key={`${g.key}:${o.id}`} o={o} onEdit={() => setEditing(o)} onExport={() => exportObjective(o)} />
+                    <ObjectiveCard
+                      key={`${g.key}:${o.id}`}
+                      o={o}
+                      onView={() => setViewing(o)}
+                      onEdit={() => setEditing(o)}
+                      onExport={() => exportObjective(o)}
+                    />
                   ))}
                 </div>
               </div>
@@ -321,6 +328,7 @@ export default function Objectives() {
           }}
         />
       ) : null}
+      {viewing ? <ViewObjectiveModal o={viewing} onClose={() => setViewing(null)} /> : null}
     </div>
   )
 }
@@ -351,10 +359,12 @@ function Badge({ label, value, tone }: { label: string; value: string; tone: Bad
 
 function ObjectiveCard({
   o,
+  onView,
   onEdit,
   onExport,
 }: {
   o: Objective
+  onView: () => void
   onEdit: () => void
   onExport: () => void
 }) {
@@ -380,6 +390,13 @@ function ObjectiveCard({
         </div>
         <div className="flex items-center gap-3 text-xs">
           <div className="text-[rgb(var(--faint))]">Updated {new Date(o.updatedAt).toLocaleString()}</div>
+          <button
+            type="button"
+            onClick={onView}
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+          >
+            View
+          </button>
           <button
             type="button"
             onClick={onExport}
@@ -743,6 +760,99 @@ function EditObjectiveModal({
           >
             Save
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ViewObjectiveModal({ o, onClose }: { o: Objective; onClose: () => void }) {
+  const telemetrySources = (o.requiredTelemetrySources ?? []).map((s) => telemetryLabel(s))
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+      <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold">Objective {o.id}</div>
+            <div className="mt-1 text-xs text-[rgb(var(--faint))]">{o.name}</div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
+          <div className="space-y-4">
+            <div>
+              <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Description</div>
+              <div className="mt-2 text-sm text-[rgb(var(--muted))]">{o.description}</div>
+            </div>
+
+            <div>
+              <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Response</div>
+              <div className="mt-2 text-sm text-[rgb(var(--muted))]">{o.responsePlan ?? '(not provided)'}</div>
+            </div>
+
+            <div>
+              <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Rationale</div>
+              <div className="mt-2 text-sm text-[rgb(var(--muted))]">{o.rationale ?? '(not provided)'}</div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Badge label="Status" value={o.status} tone="status" />
+              <Badge label="Telemetry" value={o.telemetryReadiness} tone="telemetry" />
+              <Badge label="Severity" value={o.severity} tone="severity" />
+              <Badge label="Urgency" value={o.urgency} tone="urgency" />
+            </div>
+
+            {o.queryAvailable ? (
+              <div>
+                <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Query</div>
+                <pre className="mt-2 whitespace-pre-wrap rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3 text-xs text-[rgb(var(--text-muted))]">
+                  {o.query ?? '(not provided)'}
+                </pre>
+              </div>
+            ) : null}
+
+            <div>
+              <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">MITRE mapping</div>
+              <div className="mt-2 text-sm text-[rgb(var(--muted))]">
+                {(o.mitre ?? []).map((m) => `${m.tactic}/${m.technique}${m.subtechnique ? `.${m.subtechnique}` : ''}`).join(', ') || '(none)'}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Required telemetry sources</div>
+              <div className="mt-2 text-sm text-[rgb(var(--muted))]">
+                {telemetrySources.length ? telemetrySources.join(', ') : '(none)'}
+              </div>
+            </div>
+
+            {o.otherTelemetrySources?.length ? (
+              <div>
+                <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Other telemetry sources</div>
+                <div className="mt-2 text-sm text-[rgb(var(--muted))]">{o.otherTelemetrySources.join(', ')}</div>
+              </div>
+            ) : null}
+
+            {o.telemetryNotes ? (
+              <div>
+                <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Telemetry notes</div>
+                <div className="mt-2 text-sm text-[rgb(var(--muted))]">{o.telemetryNotes}</div>
+              </div>
+            ) : null}
+
+            {o.externalReferences?.length ? (
+              <div>
+                <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">External references</div>
+                <div className="mt-2 text-sm text-[rgb(var(--muted))]">{o.externalReferences.join(', ')}</div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

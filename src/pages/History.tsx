@@ -70,6 +70,7 @@ export default function History() {
           {filtered.map((e) => {
             const id = e.id ?? -1
             const isOpen = openId === id
+            const changedPaths = diffPaths(e.before, e.after)
             return (
               <div key={String(e.id ?? `${e.ts}:${e.entityType}:${e.action}`)} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
                 <button type="button" onClick={() => setOpenId(isOpen ? null : id)} className="w-full text-left">
@@ -87,11 +88,11 @@ export default function History() {
 
                 {isOpen ? (
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <JsonBlock title="Before" value={e.before} />
-                    <JsonBlock title="After" value={e.after} />
+                    <JsonBlock title="Before" value={e.before} highlightPaths={changedPaths} tone="before" />
+                    <JsonBlock title="After" value={e.after} highlightPaths={changedPaths} tone="after" />
                     {e.meta ? (
                       <div className="md:col-span-2">
-                        <JsonBlock title="Meta" value={e.meta} />
+                        <JsonBlock title="Meta" value={e.meta} highlightPaths={new Set()} tone="meta" />
                       </div>
                     ) : null}
                   </div>
@@ -122,13 +123,140 @@ function TabButton({ on, onClick, children }: { on: boolean; onClick: () => void
   )
 }
 
-function JsonBlock({ title, value }: { title: string; value: unknown }) {
+type JsonTone = 'before' | 'after' | 'meta'
+
+function JsonBlock({
+  title,
+  value,
+  highlightPaths,
+  tone,
+}: {
+  title: string
+  value: unknown
+  highlightPaths: Set<string>
+  tone: JsonTone
+}) {
+  const lines = value === undefined ? null : renderValue(value, 0, '$')
+  const highlightClass =
+    tone === 'after'
+      ? 'bg-emerald-500/10 text-emerald-200'
+      : tone === 'before'
+        ? 'bg-rose-500/10 text-rose-200'
+        : 'bg-transparent'
   return (
     <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3">
       <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">{title}</div>
       <pre className="mt-2 max-h-72 overflow-auto text-xs text-[rgb(var(--text-muted))]">
-        {value === undefined ? '(none)' : JSON.stringify(value, null, 2)}
+        {lines
+          ? lines.map((line, idx) => (
+              <div
+                key={`${line.path}:${idx}`}
+                className={highlightPaths.has(line.path) ? `rounded px-1 ${highlightClass}` : undefined}
+              >
+                {line.text}
+              </div>
+            ))
+          : '(none)'}
       </pre>
     </div>
   )
+}
+
+type JsonLine = {
+  text: string
+  path: string
+}
+
+function diffPaths(before: unknown, after: unknown, path = '$'): Set<string> {
+  if (before === after) return new Set()
+  const beforeIsObj = typeof before === 'object' && before !== null
+  const afterIsObj = typeof after === 'object' && after !== null
+
+  if (!beforeIsObj || !afterIsObj) return new Set([path])
+
+  const beforeIsArray = Array.isArray(before)
+  const afterIsArray = Array.isArray(after)
+  if (beforeIsArray !== afterIsArray) return new Set([path])
+
+  const out = new Set<string>()
+
+  if (beforeIsArray && afterIsArray) {
+    const a = before as unknown[]
+    const b = after as unknown[]
+    const max = Math.max(a.length, b.length)
+    for (let i = 0; i < max; i++) {
+      const childPath = `${path}[${i}]`
+      if (i >= a.length || i >= b.length) {
+        out.add(childPath)
+        continue
+      }
+      for (const p of diffPaths(a[i], b[i], childPath)) out.add(p)
+    }
+    return out
+  }
+
+  const aObj = before as Record<string, unknown>
+  const bObj = after as Record<string, unknown>
+  const keys = new Set([...Object.keys(aObj), ...Object.keys(bObj)])
+  for (const key of keys) {
+    const childPath = path === '$' ? `$.${key}` : `${path}.${key}`
+    if (!(key in aObj) || !(key in bObj)) {
+      out.add(childPath)
+      continue
+    }
+    for (const p of diffPaths(aObj[key], bObj[key], childPath)) out.add(p)
+  }
+  return out
+}
+
+function renderValue(value: unknown, indent: number, path: string): JsonLine[] {
+  const pad = '  '.repeat(indent)
+  if (value === null || value === undefined || typeof value !== 'object') {
+    return [{ text: `${pad}${JSON.stringify(value)}`, path }]
+  }
+
+  if (Array.isArray(value)) {
+    const lines: JsonLine[] = [{ text: `${pad}[`, path }]
+    value.forEach((item, idx) => {
+      const childPath = `${path}[${idx}]`
+      const rendered = renderValue(item, indent + 1, childPath)
+      if (rendered.length === 1) {
+        const comma = idx === value.length - 1 ? '' : ','
+        lines.push({ text: `${'  '.repeat(indent + 1)}${rendered[0].text.trim()}${comma}`, path: childPath })
+      } else {
+        const comma = idx === value.length - 1 ? '' : ','
+        lines.push({ text: `${'  '.repeat(indent + 1)}${rendered[0].text.trim()}`, path: childPath })
+        lines.push(...rendered.slice(1, -1))
+        const closeLine = rendered[rendered.length - 1]
+        lines.push({ text: `${closeLine.text}${comma}`, path: closeLine.path })
+      }
+    })
+    lines.push({ text: `${pad}]`, path })
+    return lines
+  }
+
+  const obj = value as Record<string, unknown>
+  const keys = Object.keys(obj)
+  const lines: JsonLine[] = [{ text: `${pad}{`, path }]
+  keys.forEach((key, idx) => {
+    const childPath = path === '$' ? `$.${key}` : `${path}.${key}`
+    const rendered = renderValue(obj[key], indent + 1, childPath)
+    const comma = idx === keys.length - 1 ? '' : ','
+    if (rendered.length === 1) {
+      lines.push({
+        text: `${'  '.repeat(indent + 1)}"${key}": ${rendered[0].text.trim()}${comma}`,
+        path: childPath,
+      })
+      return
+    }
+    lines.push({
+      text: `${'  '.repeat(indent + 1)}"${key}": ${rendered[0].text.trim()}`,
+      path: childPath,
+    })
+    lines.push(...rendered.slice(1, -1))
+    const closeLine = rendered[rendered.length - 1]
+    lines.push({ text: `${closeLine.text}${comma}`, path: closeLine.path })
+  })
+  lines.push({ text: `${pad}}`, path })
+  return lines
 }
