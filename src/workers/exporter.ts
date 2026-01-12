@@ -38,7 +38,7 @@ function mdObjective(o: Objective) {
         ...required.map((id) => {
           const row = TELEMETRY_BY_ID.get(id)
           if (!row) return `- ${id}`
-          return `- ${row.label}: ${row.details.join(' • ')}`
+          return `- ${row.name}: ${row.details.join(' • ')}`
         }),
         '',
       ].join('\n')
@@ -85,7 +85,7 @@ function mdObjectivePack({
           .map((id) => {
             const row = TELEMETRY_BY_ID.get(id)
             if (!row) return `- ${id}`
-            return `- ${row.label}: ${row.details.join(' • ')}`
+            return `- ${row.name}: ${row.details.join(' • ')}`
           })
           .join('\n'),
         '',
