@@ -142,7 +142,7 @@ export default function Shell({ children }: PropsWithChildren) {
       <footer className="border-t border-[rgb(var(--border))]">
         <div className="mx-auto flex max-w-6xl items-center justify-end px-4 py-4 text-xs text-[rgb(var(--faint))]">
           <a
-            href={`${import.meta.env.BASE_URL}README.md`}
+            href="https://github.com/BrickBross/lite-detection-workbench"
             className="text-[rgb(var(--faint))] hover:text-[rgb(var(--text))] underline-offset-2 hover:underline"
             target="_blank"
             rel="noreferrer"
