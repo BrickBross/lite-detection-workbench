@@ -3372,6 +3372,108 @@ const SERVICE_CATALOG_RAW = [
       "loggingEnabled": true
     },
     "iconKey": "onprem:On-Prem"
+  },
+  {
+    "provider": "aws",
+    "category": "AI & ML",
+    "name": "Amazon Bedrock",
+    "id": "eb826010-81c9-44d6-9b1a-b3017310f61e",
+    "kind": "process",
+    "defaultProps": {
+      "provider": "aws",
+      "serviceCategory": "AI & ML",
+      "serviceId": "eb826010-81c9-44d6-9b1a-b3017310f61e",
+      "dataClassification": "Internal",
+      "internetExposed": false,
+      "authRequired": true,
+      "loggingEnabled": true
+    },
+    "iconKey": "aws:AI & ML"
+  },
+  {
+    "provider": "aws",
+    "category": "AI & ML",
+    "name": "Amazon SageMaker",
+    "id": "4592a2bb-1069-4a92-9109-01b44fe367f8",
+    "kind": "process",
+    "defaultProps": {
+      "provider": "aws",
+      "serviceCategory": "AI & ML",
+      "serviceId": "4592a2bb-1069-4a92-9109-01b44fe367f8",
+      "dataClassification": "Internal",
+      "internetExposed": false,
+      "authRequired": true,
+      "loggingEnabled": true
+    },
+    "iconKey": "aws:AI & ML"
+  },
+  {
+    "provider": "azure",
+    "category": "AI & ML",
+    "name": "Azure OpenAI Service",
+    "id": "8d887f48-a942-4a0a-973d-fab198c65a01",
+    "kind": "process",
+    "defaultProps": {
+      "provider": "azure",
+      "serviceCategory": "AI & ML",
+      "serviceId": "8d887f48-a942-4a0a-973d-fab198c65a01",
+      "dataClassification": "Internal",
+      "internetExposed": false,
+      "authRequired": true,
+      "loggingEnabled": true
+    },
+    "iconKey": "azure:AI & ML"
+  },
+  {
+    "provider": "gcp",
+    "category": "AI & ML",
+    "name": "Gemini (Vertex AI)",
+    "id": "2e105e89-cc47-4966-b347-3d528e94b845",
+    "kind": "process",
+    "defaultProps": {
+      "provider": "gcp",
+      "serviceCategory": "AI & ML",
+      "serviceId": "2e105e89-cc47-4966-b347-3d528e94b845",
+      "dataClassification": "Internal",
+      "internetExposed": false,
+      "authRequired": true,
+      "loggingEnabled": true
+    },
+    "iconKey": "gcp:AI & ML"
+  },
+  {
+    "provider": "saas",
+    "category": "Gen AI",
+    "name": "OpenAI (GPT)",
+    "id": "a7e92756-d11e-424b-9dd2-79bbd0d9f88c",
+    "kind": "external",
+    "defaultProps": {
+      "provider": "saas",
+      "serviceCategory": "Gen AI",
+      "serviceId": "a7e92756-d11e-424b-9dd2-79bbd0d9f88c",
+      "dataClassification": "Internal",
+      "internetExposed": false,
+      "authRequired": true,
+      "loggingEnabled": true
+    },
+    "iconKey": "saas:Gen AI"
+  },
+  {
+    "provider": "saas",
+    "category": "Gen AI",
+    "name": "Anthropic Claude",
+    "id": "0464488d-3fa9-4892-9d7c-aa86d2698165",
+    "kind": "external",
+    "defaultProps": {
+      "provider": "saas",
+      "serviceCategory": "Gen AI",
+      "serviceId": "0464488d-3fa9-4892-9d7c-aa86d2698165",
+      "dataClassification": "Internal",
+      "internetExposed": false,
+      "authRequired": true,
+      "loggingEnabled": true
+    },
+    "iconKey": "saas:Gen AI"
   }
 ] as const;
 

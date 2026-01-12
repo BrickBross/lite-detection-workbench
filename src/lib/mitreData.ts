@@ -21,20 +21,43 @@ function titleCaseFromPhase(phase: string) {
     .join(' ')
 }
 
+function dedupeMitreTechniques(records: MitreTechniqueRecord[]) {
+  const out = new Map<string, MitreTechniqueRecord>()
+  for (const r of records) out.set(`${r.technique}|${r.tactic}`, r)
+  return Array.from(out.values())
+}
+
 async function ensureMitreSeeded() {
   if (seedPromise) return seedPromise
   seedPromise = (async () => {
     const count = await db.mitreTechniques.count()
     if (count > 0) return
 
-    const url = `${import.meta.env.BASE_URL}enterprise-attack.json`
-    const res = await fetch(url)
-    if (!res.ok) return
+    const records: MitreTechniqueRecord[] = []
 
-    const text = await res.text()
-    const { techniques } = parseMitreAttackStix(text)
-    if (!techniques.length) return
-    await saveMitreTechniques(techniques)
+    const attackUrl = `${import.meta.env.BASE_URL}enterprise-attack.json`
+    const attackRes = await fetch(attackUrl)
+    if (attackRes.ok) {
+      const text = await attackRes.text()
+      const { techniques } = parseMitreAttackStix(text)
+      records.push(...techniques)
+    }
+
+    const atlasUrl = `${import.meta.env.BASE_URL}mitre-atlas.json`
+    const atlasRes = await fetch(atlasUrl)
+    if (atlasRes.ok) {
+      const text = await atlasRes.text()
+      const { techniques } = parseMitreAttackStix(text, {
+        sourceNames: ['mitre-atlas', 'mitre-attack'],
+        killChainNames: ['mitre-atlas', 'mitre-attack'],
+        label: 'MITRE ATLAS',
+      })
+      records.push(...techniques)
+    }
+
+    const merged = dedupeMitreTechniques(records)
+    if (!merged.length) return
+    await saveMitreTechniques(merged)
   })()
   return seedPromise
 }
@@ -59,7 +82,10 @@ export function useMitreTechniques() {
   return useMemo(() => rows ?? MITRE_TECHNIQUES, [rows])
 }
 
-export function parseMitreAttackStix(jsonText: string): { techniques: MitreTechniqueRecord[]; warnings: string[] } {
+export function parseMitreAttackStix(
+  jsonText: string,
+  options?: { sourceNames?: string[]; killChainNames?: string[]; label?: string }
+): { techniques: MitreTechniqueRecord[]; warnings: string[] } {
   const warnings: string[] = []
   let doc: any
   try {
@@ -68,8 +94,12 @@ export function parseMitreAttackStix(jsonText: string): { techniques: MitreTechn
     throw new Error('Invalid JSON (failed to parse)')
   }
 
+  const sourceNames = options?.sourceNames?.length ? options.sourceNames : ['mitre-attack']
+  const killChainNames = options?.killChainNames?.length ? options.killChainNames : ['mitre-attack']
+  const label = options?.label ?? 'MITRE ATT&CK'
+
   const objects: any[] = Array.isArray(doc?.objects) ? doc.objects : []
-  if (!objects.length) warnings.push('No STIX objects[] found; expected enterprise-attack.json format.')
+  if (!objects.length) warnings.push(`No STIX objects[] found; expected ${label} STIX JSON.`)
 
   const out = new Map<string, MitreTechniqueRecord>()
 
@@ -79,13 +109,13 @@ export function parseMitreAttackStix(jsonText: string): { techniques: MitreTechn
     if (!name) continue
 
     const refs: any[] = Array.isArray(obj?.external_references) ? obj.external_references : []
-    const mitreRef = refs.find((r) => r?.source_name === 'mitre-attack' && typeof r?.external_id === 'string')
+    const mitreRef = refs.find((r) => sourceNames.includes(r?.source_name) && typeof r?.external_id === 'string')
     const techniqueId: string | null = mitreRef?.external_id ?? null
     if (!techniqueId) continue
 
     const phases: any[] = Array.isArray(obj?.kill_chain_phases) ? obj.kill_chain_phases : []
     const tactics = phases
-      .filter((p) => p?.kill_chain_name === 'mitre-attack' && typeof p?.phase_name === 'string')
+      .filter((p) => killChainNames.includes(p?.kill_chain_name) && typeof p?.phase_name === 'string')
       .map((p) => titleCaseFromPhase(p.phase_name))
 
     const finalTactics = tactics.length ? tactics : ['Unknown']
@@ -96,7 +126,7 @@ export function parseMitreAttackStix(jsonText: string): { techniques: MitreTechn
   }
 
   const techniques = Array.from(out.values()).sort((a, b) => (a.tactic + a.technique + a.name).localeCompare(b.tactic + b.technique + b.name))
-  if (!techniques.length) warnings.push('Parsed 0 techniques; ensure you provided the MITRE ATT&CK STIX JSON (enterprise-attack.json).')
+  if (!techniques.length) warnings.push(`Parsed 0 techniques; ensure you provided the ${label} STIX JSON.`)
 
   return { techniques, warnings }
 }
