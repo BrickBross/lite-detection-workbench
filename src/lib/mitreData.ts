@@ -12,11 +12,31 @@ export type MitreTechniqueRecord = MitreTechniqueLite & {
   id: string
 }
 
+let seedPromise: Promise<void> | null = null
+
 function titleCaseFromPhase(phase: string) {
   return phase
     .split('-')
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
     .join(' ')
+}
+
+async function ensureMitreSeeded() {
+  if (seedPromise) return seedPromise
+  seedPromise = (async () => {
+    const count = await db.mitreTechniques.count()
+    if (count > 0) return
+
+    const url = `${import.meta.env.BASE_URL}enterprise-attack.json`
+    const res = await fetch(url)
+    if (!res.ok) return
+
+    const text = await res.text()
+    const { techniques } = parseMitreAttackStix(text)
+    if (!techniques.length) return
+    await saveMitreTechniques(techniques)
+  })()
+  return seedPromise
 }
 
 export function useMitreTechniques() {
@@ -25,6 +45,7 @@ export function useMitreTechniques() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      await ensureMitreSeeded()
       const stored = await db.mitreTechniques.toArray()
       if (cancelled) return
       if (stored.length) setRows(stored.map(({ technique, tactic, name }) => ({ technique, tactic, name })))

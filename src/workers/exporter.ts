@@ -29,12 +29,17 @@ function toYaml(obj: any, indent = 0): string {
 }
 
 function mdObjective(o: Objective) {
-  const exabeamLine = (o.exabeamUseCases ?? []).length ? `**Exabeam use cases:** ${(o.exabeamUseCases ?? []).join(', ')}  \n` : ''
+  const telemetrySourcesLine = (o.requiredTelemetrySources ?? []).length
+    ? `**Required telemetry:** ${(o.requiredTelemetrySources ?? []).join(', ')}  \n`
+    : ''
+  const telemetryNotesLine = o.telemetryNotes ? `**Telemetry notes:** ${o.telemetryNotes}  \n` : ''
   return `# ${o.id}: ${o.name}
 
+**Severity:** ${o.severity}  
+**Urgency:** ${o.urgency}  
 **Status:** ${o.status}  
 **Telemetry readiness:** ${o.telemetryReadiness}  
-${exabeamLine}
+${telemetrySourcesLine}${telemetryNotesLine}
 
 ## Description
 ${o.description}
@@ -59,9 +64,10 @@ function mdObjectivePack({
   detections: Detection[]
   signals: Signal[]
 }) {
-  const exabeamLines = (objective.exabeamUseCases ?? []).length
-    ? ['## Exabeam use cases', (objective.exabeamUseCases ?? []).map((x) => `- ${x}`).join('\n'), '']
+  const telemetrySourcesLines = (objective.requiredTelemetrySources ?? []).length
+    ? ['## Required telemetry sources', (objective.requiredTelemetrySources ?? []).map((x) => `- ${x}`).join('\n'), '']
     : []
+  const telemetryNotesLines = objective.telemetryNotes ? ['## Telemetry notes', objective.telemetryNotes, ''] : []
   const sigLines = signals.length ? signals.map((s) => `- ${s.id}: ${s.name} (${s.logSource})`).join('\n') : '- (none)'
   const detLines = detections.length
     ? detections
@@ -73,6 +79,8 @@ function mdObjectivePack({
   return [
     `# ${objective.id}: ${objective.name}`,
     '',
+    `**Severity:** ${objective.severity}`,
+    `**Urgency:** ${objective.urgency}`,
     `**Status:** ${objective.status}`,
     `**Telemetry readiness:** ${objective.telemetryReadiness}`,
     '',
@@ -82,7 +90,8 @@ function mdObjectivePack({
     `## MITRE`,
     objective.mitre.map((m) => `- ${m.tactic} / ${m.technique}${m.subtechnique ? `.${m.subtechnique}` : ''}`).join('\n'),
     '',
-    ...exabeamLines,
+    ...telemetrySourcesLines,
+    ...telemetryNotesLines,
     `## Signals`,
     sigLines,
     '',
@@ -166,7 +175,6 @@ It is **inspired by** concepts from the **OpenTide detection engineering framewo
     status: o.status,
     telemetryReadiness: o.telemetryReadiness,
     mitre: o.mitre,
-    platforms: o.platforms,
     detectionCount: payload.detections.filter((d) => d.objectiveId === o.id).length,
   }))
   root.file('project/indexes/coverage.json', JSON.stringify(coverage, null, 2))

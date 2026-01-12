@@ -34,7 +34,9 @@ export default function MitreMatrix() {
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-xl font-semibold">MITRE Matrix (Lite)</h1>
-          <p className="text-sm text-zinc-400">Coverage indicator against your Objectives. Import full ATT&CK (offline) to replace the starter list.</p>
+          <p className="text-sm text-zinc-400">
+            Coverage indicator against your Objectives. Full ATT&CK techniques can auto-seed on first load (stored locally in IndexedDB).
+          </p>
         </div>
         <input
           value={q}
@@ -112,4 +114,3 @@ export default function MitreMatrix() {
     </div>
   )
 }
-

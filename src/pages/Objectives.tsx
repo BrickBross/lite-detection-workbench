@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 import { db } from '../lib/db'
 import { isoNow } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
+import { TELEMETRY_SOURCES } from '../lib/telemetrySources'
 import type { Objective } from '../lib/schemas'
-import { Platform } from '../lib/schemas'
 
 export default function Objectives() {
   const [items, setItems] = useState<Objective[]>([])
@@ -46,9 +46,12 @@ export default function Objectives() {
                   <div className="mt-3 flex flex-wrap gap-2 text-xs">
                     <Badge>{o.status}</Badge>
                     <Badge>{o.telemetryReadiness}</Badge>
-                    {o.platforms.map((p) => (
-                      <Badge key={p}>{p}</Badge>
+                    <Badge>{o.severity}</Badge>
+                    <Badge>{o.urgency}</Badge>
+                    {(o.requiredTelemetrySources ?? []).slice(0, 4).map((s) => (
+                      <Badge key={s}>{s}</Badge>
                     ))}
+                    {(o.requiredTelemetrySources ?? []).length > 4 ? <Badge>+{(o.requiredTelemetrySources ?? []).length - 4} more</Badge> : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs">
@@ -103,13 +106,15 @@ function EditObjectiveModal({
   const [name, setName] = useState(o.name)
   const [description, setDescription] = useState(o.description)
   const [rationale, setRationale] = useState(o.rationale ?? '')
-  const [exabeamUseCasesText, setExabeamUseCasesText] = useState((o.exabeamUseCases ?? []).join(', '))
   const [status, setStatus] = useState<Objective['status']>(o.status)
   const [telemetryReadiness, setTelemetryReadiness] = useState<Objective['telemetryReadiness']>(o.telemetryReadiness)
-  const [platforms, setPlatforms] = useState<string[]>(o.platforms as unknown as string[])
+  const [severity, setSeverity] = useState<Objective['severity']>(o.severity ?? 'medium')
+  const [urgency, setUrgency] = useState<Objective['urgency']>(o.urgency ?? 'p2')
+  const [requiredTelemetrySources, setRequiredTelemetrySources] = useState<string[]>(o.requiredTelemetrySources ?? [])
+  const [telemetryNotes, setTelemetryNotes] = useState(o.telemetryNotes ?? '')
   const [mitre, setMitre] = useState(o.mitre.length ? o.mitre : [{ tactic: 'Credential Access', technique: 'T1003' }])
 
-  const canSave = name.trim().length >= 3 && description.trim().length >= 3 && platforms.length > 0 && mitre.length > 0
+  const canSave = name.trim().length >= 3 && description.trim().length >= 3 && mitre.length > 0
 
   const save = async () => {
     if (!canSave) return
@@ -119,13 +124,12 @@ function EditObjectiveModal({
       name: name.trim(),
       description: description.trim(),
       rationale: rationale.trim() ? rationale.trim() : undefined,
-      exabeamUseCases: exabeamUseCasesText
-        .split(',')
-        .map((x) => x.trim())
-        .filter(Boolean),
       status,
       telemetryReadiness,
-      platforms: platforms as any,
+      severity,
+      urgency,
+      requiredTelemetrySources,
+      telemetryNotes: telemetryNotes.trim() ? telemetryNotes.trim() : undefined,
       mitre,
       updatedAt: now,
     }
@@ -158,8 +162,34 @@ function EditObjectiveModal({
             <Textarea value={description} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)} />
             <Label className="mt-3">Rationale (optional)</Label>
             <Textarea value={rationale} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)} />
-            <Label className="mt-3">Exabeam use cases (optional)</Label>
-            <Input value={exabeamUseCasesText} onChange={(e: ChangeEvent<HTMLInputElement>) => setExabeamUseCasesText(e.target.value)} />
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <Label>Severity</Label>
+                <select
+                  className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                  value={severity}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSeverity(e.target.value as any)}
+                >
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                  <option value="critical">critical</option>
+                </select>
+              </div>
+              <div>
+                <Label>Urgency</Label>
+                <select
+                  className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                  value={urgency}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
+                >
+                  <option value="p0">p0 (urgent)</option>
+                  <option value="p1">p1</option>
+                  <option value="p2">p2</option>
+                  <option value="p3">p3 (backlog)</option>
+                </select>
+              </div>
+            </div>
           </Card>
 
           <Card>
@@ -209,17 +239,22 @@ function EditObjectiveModal({
               + Add mapping
             </button>
 
-            <Label className="mt-4">Platforms</Label>
+            <Label className="mt-4">Required telemetry sources</Label>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              {Platform.options.map((p) => (
+              {TELEMETRY_SOURCES.map((s) => (
                 <Toggle
-                  key={p}
-                  on={platforms.includes(p)}
-                  label={p}
-                  onClick={() => setPlatforms((cur) => (cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]))}
+                  key={s}
+                  on={requiredTelemetrySources.includes(s)}
+                  label={s}
+                  onClick={() =>
+                    setRequiredTelemetrySources((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))
+                  }
                 />
               ))}
             </div>
+
+            <Label className="mt-3">Telemetry notes (optional)</Label>
+            <Textarea value={telemetryNotes} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTelemetryNotes(e.target.value)} />
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div>

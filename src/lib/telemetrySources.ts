@@ -1,0 +1,32 @@
+export const TELEMETRY_SOURCES = [
+  'Windows Security Event Log',
+  'Sysmon',
+  'PowerShell logs',
+  'Windows Defender / AV',
+  'Linux auth/syslog',
+  'macOS Unified Logs',
+  'EDR process events',
+  'EDR file/registry events',
+  'EDR network events',
+  'DNS logs',
+  'Proxy / web gateway',
+  'Firewall logs',
+  'NetFlow / network telemetry',
+  'VPN / remote access',
+  'Email security',
+  'Azure AD / Entra ID sign-in',
+  'Okta / IdP sign-in',
+  'Active Directory audit',
+  'M365 / Office audit',
+  'Google Workspace audit',
+  'AWS CloudTrail',
+  'AWS VPC Flow Logs',
+  'Azure Activity Logs',
+  'GCP Audit Logs',
+  'Kubernetes audit logs',
+  'Container runtime events',
+  'SaaS app audit logs',
+] as const
+
+export type TelemetrySource = (typeof TELEMETRY_SOURCES)[number]
+

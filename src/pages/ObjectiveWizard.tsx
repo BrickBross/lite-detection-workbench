@@ -5,7 +5,7 @@ import { db } from '../lib/db'
 import { nextId, isoNow } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
 import type { Objective } from '../lib/schemas'
-import { Platform } from '../lib/schemas'
+import { TELEMETRY_SOURCES } from '../lib/telemetrySources'
 
 export default function ObjectiveWizard() {
   const navigate = useNavigate()
@@ -13,15 +13,17 @@ export default function ObjectiveWizard() {
   const [description, setDescription] = useState('')
   const [mitre, setMitre] = useState<string>('T1003')
   const [tactic, setTactic] = useState<string>('Credential Access')
-  const [platforms, setPlatforms] = useState<string[]>(['sigma_generic'])
   const [status, setStatus] = useState<Objective['status']>('planned')
   const [telemetryReadiness, setTelemetryReadiness] = useState<Objective['telemetryReadiness']>('partial')
   const [rationale, setRationale] = useState('')
-  const [exabeamUseCasesText, setExabeamUseCasesText] = useState('')
+  const [severity, setSeverity] = useState<Objective['severity']>('medium')
+  const [urgency, setUrgency] = useState<Objective['urgency']>('p2')
+  const [requiredTelemetrySources, setRequiredTelemetrySources] = useState<string[]>([])
+  const [telemetryNotes, setTelemetryNotes] = useState('')
 
   const mitreOptions = useMitreTechniques()
 
-  const canSave = name.trim().length >= 3 && description.trim().length >= 3 && platforms.length > 0
+  const canSave = name.trim().length >= 3 && description.trim().length >= 3
 
   const save = async () => {
     const existing = await db.objectives.toCollection().primaryKeys()
@@ -32,14 +34,13 @@ export default function ObjectiveWizard() {
       name: name.trim(),
       description: description.trim(),
       mitre: [{ tactic, technique: mitre }],
-      platforms: platforms as any,
       status,
       telemetryReadiness,
       rationale: rationale.trim() ? rationale.trim() : undefined,
-      exabeamUseCases: exabeamUseCasesText
-        .split(',')
-        .map((x) => x.trim())
-        .filter(Boolean),
+      severity,
+      urgency,
+      requiredTelemetrySources,
+      telemetryNotes: telemetryNotes.trim() ? telemetryNotes.trim() : undefined,
       createdAt: now,
       updatedAt: now,
     }
@@ -76,12 +77,35 @@ export default function ObjectiveWizard() {
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)}
             placeholder="Why does this matter? What risk does it reduce?"
           />
-          <Label className="mt-3">Exabeam use cases (optional)</Label>
-          <Input
-            value={exabeamUseCasesText}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setExabeamUseCasesText(e.target.value)}
-            placeholder="Comma-separated (e.g., UC-01, UC-15)"
-          />
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <Label>Severity</Label>
+              <select
+                className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                value={severity}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setSeverity(e.target.value as any)}
+              >
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+                <option value="critical">critical</option>
+              </select>
+            </div>
+            <div>
+              <Label>Urgency</Label>
+              <select
+                className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                value={urgency}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
+              >
+                <option value="p0">p0 (urgent)</option>
+                <option value="p1">p1</option>
+                <option value="p2">p2</option>
+                <option value="p3">p3 (backlog)</option>
+              </select>
+            </div>
+          </div>
         </Card>
 
         <Card>
@@ -105,17 +129,26 @@ export default function ObjectiveWizard() {
             <Input value={tactic} onChange={(e: ChangeEvent<HTMLInputElement>) => setTactic(e.target.value)} />
           </div>
 
-          <Label className="mt-3">Target platforms</Label>
+          <Label className="mt-3">Required telemetry sources</Label>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            {Platform.options.map((p) => (
+            {TELEMETRY_SOURCES.map((s) => (
               <Toggle
-                key={p}
-                on={platforms.includes(p)}
-                label={p}
-                onClick={() => setPlatforms((cur) => (cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]))}
+                key={s}
+                on={requiredTelemetrySources.includes(s)}
+                label={s}
+                onClick={() =>
+                  setRequiredTelemetrySources((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))
+                }
               />
             ))}
           </div>
+
+          <Label className="mt-3">Telemetry notes (optional)</Label>
+          <Textarea
+            value={telemetryNotes}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTelemetryNotes(e.target.value)}
+            placeholder="Any assumptions, required fields, log locations, retention requirements, known gaps…"
+          />
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
@@ -133,19 +166,19 @@ export default function ObjectiveWizard() {
               </select>
             </div>
             <div>
-                <Label>Telemetry readiness</Label>
-                <select
-                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
-                  value={telemetryReadiness}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
-                >
-                  <option value="unknown">unknown</option>
-                  <option value="available">available</option>
-                  <option value="partial">partial</option>
-                  <option value="missing">missing</option>
-                </select>
-              </div>
+              <Label>Telemetry readiness</Label>
+              <select
+                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                value={telemetryReadiness}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
+              >
+                <option value="unknown">unknown</option>
+                <option value="available">available</option>
+                <option value="partial">partial</option>
+                <option value="missing">missing</option>
+              </select>
             </div>
+          </div>
         </Card>
       </div>
 
