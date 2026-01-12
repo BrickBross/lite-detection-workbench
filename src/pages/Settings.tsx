@@ -15,6 +15,13 @@ type SettingsDraft = {
   urgencyText: string
 }
 
+type BuildResult =
+  | { ok: false; message: string }
+  | {
+      ok: true
+      value: WorkbenchSettings
+    }
+
 const toText = (values: string[]) => values.join('\n')
 
 const parseList = (text: string) => {
@@ -51,16 +58,16 @@ export default function Settings() {
     })
   }, [])
 
-  const buildSettingsFromDraft = () => {
+  const buildSettingsFromDraft = (): BuildResult => {
     const statusOptions = parseList(draft.statusText)
     const telemetryReadinessOptions = parseList(draft.telemetryReadinessText)
     const severityOptions = parseList(draft.severityText)
     const urgencyOptions = parseList(draft.urgencyText)
 
-    if (!statusOptions.length) return { ok: false, message: 'Status list cannot be empty.' as const }
-    if (!telemetryReadinessOptions.length) return { ok: false, message: 'Telemetry readiness list cannot be empty.' as const }
-    if (!severityOptions.length) return { ok: false, message: 'Severity list cannot be empty.' as const }
-    if (!urgencyOptions.length) return { ok: false, message: 'Urgency list cannot be empty.' as const }
+    if (!statusOptions.length) return { ok: false, message: 'Status list cannot be empty.' }
+    if (!telemetryReadinessOptions.length) return { ok: false, message: 'Telemetry readiness list cannot be empty.' }
+    if (!severityOptions.length) return { ok: false, message: 'Severity list cannot be empty.' }
+    if (!urgencyOptions.length) return { ok: false, message: 'Urgency list cannot be empty.' }
 
     const next = normalizeSettings({
       id: 'settings',
@@ -70,7 +77,7 @@ export default function Settings() {
       urgencyOptions,
       updatedAt: settings.updatedAt,
     })
-    return { ok: true as const, value: next }
+    return { ok: true, value: next }
   }
 
   const save = async () => {
