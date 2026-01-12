@@ -17,9 +17,10 @@ export const ObjectiveSchema = z.object({
   mitre: z.array(MitreRef).min(1),
   platforms: z.array(Platform).min(1),
   status: ObjectiveStatus,
-  telemetryReadiness: z.enum(['available', 'partial', 'missing']),
+  telemetryReadiness: z.enum(['unknown', 'available', 'partial', 'missing']),
   rationale: z.string().optional(),
   owner: z.string().optional(),
+  exabeamUseCases: z.array(z.string()).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })

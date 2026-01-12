@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import type { Objective, Detection, Signal } from '../lib/schemas'
 import { nextId, isoNow } from '../lib/ids'
@@ -147,6 +148,7 @@ detection_logic:
 ]
 
 export default function DetectionBuilder() {
+  const navigate = useNavigate()
   const [objectives, setObjectives] = useState<Objective[]>([])
   const [objectiveId, setObjectiveId] = useState<string>('')
   const [templateId, setTemplateId] = useState<string>(templates[0].id)
@@ -193,7 +195,7 @@ export default function DetectionBuilder() {
       updatedAt: now,
     }
     await db.detections.add(det)
-    window.location.href = '/lite-detection-workbench/detections'
+    navigate('/detections')
   }
 
   return (

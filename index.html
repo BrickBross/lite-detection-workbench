@@ -7,6 +7,17 @@
   </head>
   <body class="bg-zinc-950 text-zinc-50">
     <div id="root"></div>
+    <script>
+      ;(() => {
+        const params = new URLSearchParams(window.location.search)
+        const p = params.get('p')
+        if (!p) return
+        const q = params.get('q')
+        const newUrl =
+          window.location.pathname.replace(/\\/$/, '') + p + (q ? `?${decodeURIComponent(q)}` : '') + window.location.hash
+        window.history.replaceState(null, '', newUrl)
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

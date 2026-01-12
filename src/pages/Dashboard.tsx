@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db } from '../lib/db'
-import { MITRE_TECHNIQUES } from '../lib/mitre'
+import { useMitreTechniques } from '../lib/mitreData'
 import { motion } from 'framer-motion'
 
 export default function Dashboard() {
   const [counts, setCounts] = useState({ objectives: 0, signals: 0, detections: 0 })
   const [coverage, setCoverage] = useState<{ technique: string; covered: number; total: number }[]>([])
+  const mitreTechniques = useMitreTechniques()
 
   useEffect(() => {
     const load = async () => {
@@ -19,7 +20,7 @@ export default function Dashboard() {
         }
       }
       setCoverage(
-        MITRE_TECHNIQUES.map((t) => ({
+        mitreTechniques.map((t) => ({
           technique: `${t.technique} (${t.tactic})`,
           covered: covered.get(t.technique) ?? 0,
           total: 1,
@@ -27,7 +28,8 @@ export default function Dashboard() {
       )
     }
     load()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mitreTechniques])
 
   const headline = useMemo(() => {
     if (counts.objectives === 0) return 'Start with an objective. Build detections from intent.'

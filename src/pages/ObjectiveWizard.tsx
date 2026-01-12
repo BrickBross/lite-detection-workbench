@@ -1,12 +1,14 @@
 import type { ChangeEvent } from 'react'
 import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { nextId, isoNow } from '../lib/ids'
-import { MITRE_TECHNIQUES } from '../lib/mitre'
+import { useMitreTechniques } from '../lib/mitreData'
 import type { Objective } from '../lib/schemas'
 import { Platform } from '../lib/schemas'
 
 export default function ObjectiveWizard() {
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [mitre, setMitre] = useState<string>('T1003')
@@ -15,8 +17,9 @@ export default function ObjectiveWizard() {
   const [status, setStatus] = useState<Objective['status']>('planned')
   const [telemetryReadiness, setTelemetryReadiness] = useState<Objective['telemetryReadiness']>('partial')
   const [rationale, setRationale] = useState('')
+  const [exabeamUseCasesText, setExabeamUseCasesText] = useState('')
 
-  const mitreOptions = useMemo(() => MITRE_TECHNIQUES, [])
+  const mitreOptions = useMitreTechniques()
 
   const canSave = name.trim().length >= 3 && description.trim().length >= 3 && platforms.length > 0
 
@@ -33,11 +36,15 @@ export default function ObjectiveWizard() {
       status,
       telemetryReadiness,
       rationale: rationale.trim() ? rationale.trim() : undefined,
+      exabeamUseCases: exabeamUseCasesText
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean),
       createdAt: now,
       updatedAt: now,
     }
     await db.objectives.add(obj)
-    window.location.href = '/lite-detection-workbench/objectives'
+    navigate('/objectives')
   }
 
   return (
@@ -68,6 +75,12 @@ export default function ObjectiveWizard() {
             value={rationale}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)}
             placeholder="Why does this matter? What risk does it reduce?"
+          />
+          <Label className="mt-3">Exabeam use cases (optional)</Label>
+          <Input
+            value={exabeamUseCasesText}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setExabeamUseCasesText(e.target.value)}
+            placeholder="Comma-separated (e.g., UC-01, UC-15)"
           />
         </Card>
 
@@ -120,28 +133,26 @@ export default function ObjectiveWizard() {
               </select>
             </div>
             <div>
-              <Label>Telemetry readiness</Label>
-              <select
-                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
-                value={telemetryReadiness}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
-              >
-                <option value="available">available</option>
-                <option value="partial">partial</option>
-                <option value="missing">missing</option>
-              </select>
+                <Label>Telemetry readiness</Label>
+                <select
+                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                  value={telemetryReadiness}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
+                >
+                  <option value="unknown">unknown</option>
+                  <option value="available">available</option>
+                  <option value="partial">partial</option>
+                  <option value="missing">missing</option>
+                </select>
+              </div>
             </div>
-          </div>
         </Card>
       </div>
 
       <div className="flex items-center justify-end gap-3">
-        <a
-          href="/lite-detection-workbench/objectives"
-          className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40"
-        >
+        <Link to="/objectives" className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40">
           Cancel
-        </a>
+        </Link>
         <button
           onClick={save}
           disabled={!canSave}
@@ -192,4 +203,3 @@ function Toggle({ on, label, onClick }: { on: boolean; label: string; onClick: (
     </button>
   )
 }
-

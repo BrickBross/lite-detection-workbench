@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { db } from '../lib/db'
 import type { Detection, Objective, Signal } from '../lib/schemas'
 import { isoNow } from '../lib/ids'
@@ -28,9 +29,9 @@ export default function Detections() {
           <h1 className="text-xl font-semibold">Detections</h1>
           <p className="text-sm text-zinc-400">Review, edit, and score detections before export.</p>
         </div>
-        <a href="/lite-detection-workbench/build" className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-white">
+        <Link to="/build" className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-white">
           New (Build)
-        </a>
+        </Link>
       </div>
 
       {detections.length === 0 ? (

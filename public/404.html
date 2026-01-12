@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting…</title>
+    <script>
+      ;(() => {
+        const segmentCount = 1
+        const l = window.location
+        const segments = l.pathname.split('/')
+        const repoRoot = segments.slice(0, 1 + segmentCount).join('/')
+        const rest = segments.slice(1 + segmentCount).join('/')
+        const q = l.search ? `&q=${encodeURIComponent(l.search.slice(1))}` : ''
+        l.replace(`${l.origin}${repoRoot}/?p=/${rest}${q}${l.hash}`)
+      })()
+    </script>
+  </head>
+  <body></body>
+</html>
