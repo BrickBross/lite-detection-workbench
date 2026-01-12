@@ -50,6 +50,19 @@ export default function About() {
           and avoids operational overhead. Export-to-JSON keeps sharing simple and portable.
         </p>
       </div>
+
+      <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5 text-sm text-[rgb(var(--text-muted))]">
+        <div className="font-semibold">Local-only execution</div>
+        <p className="mt-2 text-[rgb(var(--muted))]">
+          The app does not call external services or APIs. It runs entirely in your browser: the UI is static HTML, CSS,
+          and JavaScript served from the same origin, and your data is stored in IndexedDB on your device.
+        </p>
+        <p className="mt-2 text-[rgb(var(--muted))]">
+          The only browser interactions are local: reading and writing to IndexedDB and localStorage, loading local
+          assets (like the bundled JS/CSS and MITRE data files), and exporting JSON files you explicitly download. No
+          telemetry, analytics, or remote logging is sent.
+        </p>
+      </div>
     </div>
   )
 }
