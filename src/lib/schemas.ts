@@ -33,6 +33,8 @@ export const ObjectiveSchema = z.object({
   requiredTelemetrySourceOverrides: z.record(TelemetrySourcePropsSchema).default({}),
   otherTelemetrySources: z.array(z.string()).default([]),
   telemetryNotes: z.string().optional(),
+  queryAvailable: z.boolean().default(false),
+  query: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })

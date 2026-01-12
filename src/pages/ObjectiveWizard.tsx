@@ -29,6 +29,8 @@ export default function ObjectiveWizard() {
   const [requiredTelemetrySourceOverrides, setRequiredTelemetrySourceOverrides] = useState<Objective['requiredTelemetrySourceOverrides']>({})
   const [otherTelemetrySourcesText, setOtherTelemetrySourcesText] = useState('')
   const [telemetryNotes, setTelemetryNotes] = useState('')
+  const [queryAvailable, setQueryAvailable] = useState(false)
+  const [query, setQuery] = useState('')
 
   const mitreOptions = useMitreTechniques()
 
@@ -107,6 +109,8 @@ export default function ObjectiveWizard() {
         .map((x) => x.trim())
         .filter(Boolean),
       telemetryNotes: telemetryNotes.trim() ? telemetryNotes.trim() : undefined,
+      queryAvailable,
+      query: queryAvailable && query.trim() ? query.trim() : undefined,
       createdAt: now,
       updatedAt: now,
     }
@@ -150,6 +154,27 @@ export default function ObjectiveWizard() {
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)}
             placeholder="Why does this matter? What risk does it reduce?"
           />
+          <div className="mt-3">
+            <label className="flex items-center gap-2 text-xs text-[rgb(var(--text-muted))]">
+              <input
+                type="checkbox"
+                checked={queryAvailable}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  setQueryAvailable(checked)
+                  if (!checked) setQuery('')
+                }}
+              />
+              Query available
+            </label>
+            {queryAvailable ? (
+              <Textarea
+                value={query}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
+                placeholder="Paste the query here (KQL, Sigma, etc.)"
+              />
+            ) : null}
+          </div>
           <Label className="mt-3">Response (required)</Label>
           <Textarea
             value={responsePlan}

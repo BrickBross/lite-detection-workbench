@@ -40,7 +40,7 @@ export default function Objectives() {
       const telemetryText = (o.requiredTelemetrySources ?? []).join(' ') + ' ' + (o.otherTelemetrySources ?? []).join(' ')
       const refsText = (o.externalReferences ?? []).join(' ')
       const hay =
-        `${o.id} ${o.name} ${o.description} ${o.responsePlan ?? ''} ${o.status} ${o.telemetryReadiness} ${o.severity ?? ''} ${o.urgency ?? ''} ${mitreText} ${telemetryText} ${refsText}`.toLowerCase()
+        `${o.id} ${o.name} ${o.description} ${o.responsePlan ?? ''} ${o.status} ${o.telemetryReadiness} ${o.severity ?? ''} ${o.urgency ?? ''} ${o.query ?? ''} ${mitreText} ${telemetryText} ${refsText}`.toLowerCase()
       return hay.includes(query)
     })
   }, [items, q])
@@ -292,10 +292,26 @@ export default function Objectives() {
   )
 }
 
-function Badge({ children }: { children: any }) {
+type BadgeTone = 'status' | 'telemetry' | 'severity' | 'urgency' | 'source'
+
+const badgeToneClasses: Record<BadgeTone, string> = {
+  status: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
+  telemetry: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-200',
+  severity: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
+  urgency: 'border-rose-500/30 bg-rose-500/10 text-rose-200',
+  source: 'border-slate-500/30 bg-slate-500/10 text-slate-200',
+}
+
+function Badge({ label, value, tone }: { label: string; value: string; tone: BadgeTone }) {
   return (
-    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface2))] px-3 py-1 text-[rgb(var(--text-muted))]">
-      {children}
+    <span
+      className={[
+        'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium',
+        badgeToneClasses[tone],
+      ].join(' ')}
+    >
+      <span className="text-[11px] opacity-80">{label}:</span>
+      <span className="text-[rgb(var(--text))]">{value}</span>
     </span>
   )
 }
@@ -317,14 +333,16 @@ function ObjectiveCard({
           <div className="text-lg font-semibold">{o.name}</div>
           <div className="mt-1 text-sm text-[rgb(var(--muted))]">{o.description}</div>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <Badge>{o.status}</Badge>
-            <Badge>{o.telemetryReadiness}</Badge>
-            <Badge>{o.severity}</Badge>
-            <Badge>{o.urgency}</Badge>
+            <Badge label="Status" value={o.status} tone="status" />
+            <Badge label="Telemetry" value={o.telemetryReadiness} tone="telemetry" />
+            <Badge label="Severity" value={o.severity} tone="severity" />
+            <Badge label="Urgency" value={o.urgency} tone="urgency" />
             {(o.requiredTelemetrySources ?? []).slice(0, 4).map((s) => (
-              <Badge key={s}>{telemetryLabel(s)}</Badge>
+              <Badge key={s} label="Source" value={telemetryLabel(s)} tone="source" />
             ))}
-            {(o.requiredTelemetrySources ?? []).length > 4 ? <Badge>+{(o.requiredTelemetrySources ?? []).length - 4} more</Badge> : null}
+            {(o.requiredTelemetrySources ?? []).length > 4 ? (
+              <Badge label="Source" value={`+${(o.requiredTelemetrySources ?? []).length - 4} more`} tone="source" />
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-3 text-xs">
@@ -379,6 +397,8 @@ function EditObjectiveModal({
   const [requiredTelemetrySources, setRequiredTelemetrySources] = useState<string[]>(o.requiredTelemetrySources ?? [])
   const [otherTelemetrySourcesText, setOtherTelemetrySourcesText] = useState((o.otherTelemetrySources ?? []).join(', '))
   const [telemetryNotes, setTelemetryNotes] = useState(o.telemetryNotes ?? '')
+  const [queryAvailable, setQueryAvailable] = useState(o.queryAvailable ?? false)
+  const [query, setQuery] = useState(o.query ?? '')
   const [mitre, setMitre] = useState(o.mitre.length ? o.mitre : [{ tactic: 'Credential Access', technique: 'T1003' }])
 
   const canSave = name.trim().length >= 3 && description.trim().length >= 3 && responsePlan.trim().length >= 10 && mitre.length > 0
@@ -405,6 +425,8 @@ function EditObjectiveModal({
         .map((x) => x.trim())
         .filter(Boolean),
       telemetryNotes: telemetryNotes.trim() ? telemetryNotes.trim() : undefined,
+      queryAvailable,
+      query: queryAvailable && query.trim() ? query.trim() : undefined,
       mitre,
       updatedAt: now,
     }
@@ -475,6 +497,27 @@ function EditObjectiveModal({
             <Textarea value={description} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)} />
             <Label className="mt-3">Rationale (optional)</Label>
             <Textarea value={rationale} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)} />
+            <div className="mt-3">
+              <label className="flex items-center gap-2 text-xs text-[rgb(var(--text-muted))]">
+                <input
+                  type="checkbox"
+                  checked={queryAvailable}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setQueryAvailable(checked)
+                    if (!checked) setQuery('')
+                  }}
+                />
+                Query available
+              </label>
+              {queryAvailable ? (
+                <Textarea
+                  value={query}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
+                  placeholder="Paste the query here (KQL, Sigma, etc.)"
+                />
+              ) : null}
+            </div>
             <Label className="mt-3">Response (required)</Label>
             <Textarea
               value={responsePlan}
