@@ -1,6 +1,6 @@
 import { PropsWithChildren, useEffect, useMemo, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { Boxes, Clock, Info, Palette, Settings, Shield } from 'lucide-react'
+import { Boxes, Clock, Info, Menu, Palette, Settings, Shield, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const nav = [
@@ -28,6 +28,7 @@ const THEME_STORAGE_KEY = 'ldw.theme'
 export default function Shell({ children }: PropsWithChildren) {
   const [theme, setTheme] = useState<ThemeId>('dark')
   const themeIndex = useMemo(() => Math.max(0, THEMES.findIndex((t) => t.id === theme)), [theme])
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY)
@@ -77,6 +78,15 @@ export default function Shell({ children }: PropsWithChildren) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={() => setMobileNavOpen((cur) => !cur)}
+                className="grid h-9 w-9 place-items-center rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.4)] text-[rgb(var(--text))] hover:bg-[rgb(var(--surface2)/0.7)] md:hidden"
+                aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={mobileNavOpen}
+              >
+                {mobileNavOpen ? <X className="h-4 w-4 opacity-90" /> : <Menu className="h-4 w-4 opacity-90" />}
+              </button>
+              <button
+                type="button"
                 onClick={() => setTheme(THEMES[(themeIndex + 1) % THEMES.length].id)}
                 className="grid h-9 w-9 place-items-center rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.4)] text-[rgb(var(--text))] hover:bg-[rgb(var(--surface2)/0.7)]"
                 title="Cycle theme"
@@ -98,27 +108,30 @@ export default function Shell({ children }: PropsWithChildren) {
             </div>
           </div>
         </div>
-        <div className="mx-auto w-full max-w-6xl px-4 pb-3 md:hidden">
-          <nav className="flex gap-2 overflow-x-auto">
-            {nav.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                className={({ isActive }) =>
-                  [
-                    'flex items-center gap-2 whitespace-nowrap rounded-2xl px-3 py-2 text-sm ring-1 transition',
-                    isActive
-                      ? 'bg-[rgb(var(--surface2))] ring-[rgb(var(--border-strong))]'
-                      : 'bg-transparent text-[rgb(var(--text-muted))] ring-[rgb(var(--border))] hover:bg-[rgb(var(--surface2)/0.6)] hover:ring-[rgb(var(--border-strong))]',
-                  ].join(' ')
-                }
-              >
-                <n.icon className="h-4 w-4 opacity-80" />
-                {n.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
+        {mobileNavOpen ? (
+          <div className="mx-auto w-full max-w-6xl px-4 pb-3 md:hidden">
+            <nav className="grid gap-2 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3">
+              {nav.map((n) => (
+                <NavLink
+                  key={n.to}
+                  to={n.to}
+                  onClick={() => setMobileNavOpen(false)}
+                  className={({ isActive }) =>
+                    [
+                      'flex items-center gap-2 rounded-2xl px-3 py-2 text-sm ring-1 transition',
+                      isActive
+                        ? 'bg-[rgb(var(--surface2))] ring-[rgb(var(--border-strong))]'
+                        : 'bg-transparent text-[rgb(var(--text-muted))] ring-[rgb(var(--border))] hover:bg-[rgb(var(--surface2)/0.6)] hover:ring-[rgb(var(--border-strong))]',
+                    ].join(' ')
+                  }
+                >
+                  <n.icon className="h-4 w-4 opacity-80" />
+                  {n.label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        ) : null}
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
