@@ -333,7 +333,7 @@ export default function Objectives() {
   )
 }
 
-type BadgeTone = 'status' | 'telemetry' | 'severity' | 'urgency' | 'source'
+type BadgeTone = 'status' | 'telemetry' | 'severity' | 'urgency' | 'source' | 'mitre'
 
 const badgeToneClasses: Record<BadgeTone, string> = {
   status: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
@@ -341,6 +341,7 @@ const badgeToneClasses: Record<BadgeTone, string> = {
   severity: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
   urgency: 'border-rose-500/30 bg-rose-500/10 text-rose-200',
   source: 'border-slate-500/30 bg-slate-500/10 text-slate-200',
+  mitre: 'border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200',
 }
 
 function Badge({ label, value, tone }: { label: string; value: string; tone: BadgeTone }) {
@@ -380,6 +381,9 @@ function ObjectiveCard({
             <Badge label="Telemetry" value={o.telemetryReadiness} tone="telemetry" />
             <Badge label="Severity" value={o.severity} tone="severity" />
             <Badge label="Urgency" value={o.urgency} tone="urgency" />
+            {(o.mitre ?? []).map((m, idx) => (
+              <Badge key={`${o.id}-mitre-${idx}`} label="MITRE" value={`${m.tactic}/${m.technique}`} tone="mitre" />
+            ))}
             {(o.requiredTelemetrySources ?? []).slice(0, 4).map((s) => (
               <Badge key={s} label="Source" value={telemetryLabel(s)} tone="source" />
             ))}
@@ -412,7 +416,6 @@ function ObjectiveCard({
           </button>
         </div>
       </div>
-      <div className="mt-3 text-xs text-[rgb(var(--faint))]">MITRE: {(o.mitre ?? []).map((m) => `${m.tactic}/${m.technique}`).join(', ')}</div>
       <div className="mt-3 flex justify-end text-[11px] text-[rgb(var(--faint))]">
         <div className="text-right">
           Updated {new Date(o.updatedAt).toLocaleString()} • Created {new Date(o.createdAt).toLocaleString()}
