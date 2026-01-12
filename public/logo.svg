@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Lite Detection Workbench">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <path
+    d="M64 8c18 12 37 16 52 18v44c0 30-22 48-52 58C34 118 12 100 12 70V26c15-2 34-6 52-18Z"
+    fill="none"
+    stroke="#0f172a"
+    stroke-width="8"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M64 20c15 10 31 13 44 15v34c0 24-18 39-44 47C38 108 20 93 20 69V35c13-2 29-5 44-15Z"
+    fill="url(#g)"
+    opacity="0.9"
+  />
+  <path
+    d="M44 64h40"
+    stroke="#0f172a"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+  <path
+    d="M64 44v40"
+    stroke="#0f172a"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+</svg>

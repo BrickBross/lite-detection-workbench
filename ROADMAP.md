@@ -4,7 +4,7 @@
 - Objective wizard
 - Detection builder (Sigma, KQL, CrowdStrike, Exabeam CIM notes)
 - MITRE-lite coverage view
-- Export-to-Git ZIP
+- Export to JSON
 - GitHub Pages deployment
 - Copilot prompt packs
 

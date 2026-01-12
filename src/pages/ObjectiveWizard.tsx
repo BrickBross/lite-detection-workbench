@@ -32,19 +32,23 @@ export default function ObjectiveWizard() {
 
   const canSave = name.trim().length >= 3 && description.trim().length >= 3 && responsePlan.trim().length >= 10
 
+  const selectedMitreKey = `${mitre}|${tactic}`
+  const selectedMitre = useMemo(
+    () => mitreOptions.find((x) => `${x.technique}|${x.tactic}` === selectedMitreKey) ?? null,
+    [mitreOptions, selectedMitreKey],
+  )
+
   const filteredMitreOptions = useMemo(() => {
     const q = mitreSearch.trim().toLowerCase()
     if (!q) return mitreOptions
     return mitreOptions.filter((x) => `${x.technique} ${x.name} ${x.tactic}`.toLowerCase().includes(q)).slice(0, 200)
   }, [mitreOptions, mitreSearch])
 
-  const mitreSelectOptions = useMemo(() => {
-    const selectedKey = `${mitre}|${tactic}`
-    if (!mitreSearch.trim()) return filteredMitreOptions
-    if (filteredMitreOptions.some((x) => `${x.technique}|${x.tactic}` === selectedKey)) return filteredMitreOptions
-    const selected = mitreOptions.find((x) => `${x.technique}|${x.tactic}` === selectedKey)
-    return selected ? [selected, ...filteredMitreOptions] : filteredMitreOptions
-  }, [filteredMitreOptions, mitreOptions, mitreSearch, mitre, tactic])
+  const searchingMitre = !!mitreSearch.trim()
+  const selectedInMitreMatches = useMemo(() => {
+    if (!searchingMitre) return true
+    return filteredMitreOptions.some((x) => `${x.technique}|${x.tactic}` === selectedMitreKey)
+  }, [filteredMitreOptions, searchingMitre, selectedMitreKey])
 
   const selectedTelemetry = useMemo(() => requiredTelemetrySources.map((id) => ({ id, defaults: telemetryDefaults(id) })), [requiredTelemetrySources])
 
@@ -107,8 +111,8 @@ export default function ObjectiveWizard() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold">New Objective</h1>
-        <p className="text-sm text-zinc-400">
-          Capture the <span className="text-zinc-200">what</span> and <span className="text-zinc-200">why</span> before writing detections.
+        <p className="text-sm text-[rgb(var(--muted))]">
+          Capture the <span className="text-[rgb(var(--text))]">what</span> and <span className="text-[rgb(var(--text))]">why</span> before writing detections.
         </p>
       </div>
 
@@ -145,7 +149,7 @@ export default function ObjectiveWizard() {
               <button
                 type="button"
                 onClick={() => setExternalReferences((cur) => (cur.length >= 20 ? cur : [...cur, '']))}
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-1.5 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
                 title="Add another URL"
               >
                 +
@@ -162,16 +166,16 @@ export default function ObjectiveWizard() {
                     }
                     placeholder="https://..."
                   />
-                  {externalReferences.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => setExternalReferences((cur) => cur.filter((_, idx) => idx !== i))}
-                      className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
-                      title="Remove"
-                    >
-                      A-
-                    </button>
-                  ) : null}
+                    {externalReferences.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setExternalReferences((cur) => cur.filter((_, idx) => idx !== i))}
+                        className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+                        title="Remove"
+                      >
+                        A-
+                      </button>
+                    ) : null}
                 </div>
               ))}
             </div>
@@ -181,7 +185,7 @@ export default function ObjectiveWizard() {
             <div>
               <Label>Detection severity</Label>
               <select
-                className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
                 value={severity}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setSeverity(e.target.value as any)}
               >
@@ -194,7 +198,7 @@ export default function ObjectiveWizard() {
             <div>
               <Label>Urgency</Label>
               <select
-                className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
                 value={urgency}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
               >
@@ -213,22 +217,34 @@ export default function ObjectiveWizard() {
             value={mitreSearch}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setMitreSearch(e.target.value)}
             placeholder="Search MITRE techniques (e.g., T1003, credential dumping)"
-            className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+            className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
           />
-          <div className="mt-2 text-xs text-zinc-500">
+          <div className="mt-2 text-xs text-[rgb(var(--faint))]">
             {mitreSearch.trim() ? `Matches: ${filteredMitreOptions.length} (showing up to 200)` : `Techniques: ${mitreOptions.length}`}
           </div>
+          {searchingMitre && !selectedInMitreMatches && selectedMitre ? (
+            <div className="mt-2 text-xs text-[rgb(var(--faint))]">
+              Current selection: {selectedMitre.technique} - {selectedMitre.name} ({selectedMitre.tactic})
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <select
-              className="rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
-              value={`${mitre}|${tactic}`}
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
+              value={selectedInMitreMatches ? selectedMitreKey : ''}
               onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                if (!e.target.value) return
                 const [technique, nextTactic] = e.target.value.split('|')
                 setMitre(technique)
                 setTactic(nextTactic ?? 'Unknown')
+                setMitreSearch('')
               }}
             >
-              {mitreSelectOptions.map((t) => (
+              {selectedInMitreMatches ? null : (
+                <option value="" disabled>
+                  Select from matches...
+                </option>
+              )}
+              {filteredMitreOptions.map((t) => (
                 <option key={`${t.technique}|${t.tactic}`} value={`${t.technique}|${t.tactic}`}>
                   {t.technique} - {t.name} ({t.tactic})
                 </option>
@@ -247,8 +263,8 @@ export default function ObjectiveWizard() {
           />
 
           {selectedTelemetry.length ? (
-            <div className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-900/20 p-3">
-              <div className="text-xs font-semibold text-zinc-300">Selected source properties</div>
+            <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.2)] p-3">
+              <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Selected source properties</div>
               <div className="mt-2 space-y-2">
                 {selectedTelemetry.map(({ id, defaults }) => {
                   const cur = requiredTelemetrySourceOverrides[id] ?? {}
@@ -258,14 +274,14 @@ export default function ObjectiveWizard() {
                   const loggingEnabled = cur.loggingEnabled ?? defaults?.loggingEnabled ?? false
                   const notes = cur.notes ?? ''
                   return (
-                    <div key={id} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
+                    <div key={id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3">
                       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <div className="min-w-0">
-                          <div className="text-xs text-zinc-500">{id}</div>
-                          <div className="truncate text-sm font-semibold text-zinc-200">{telemetryLabel(id)}</div>
+                          <div className="text-xs text-[rgb(var(--faint))]">{id}</div>
+                          <div className="truncate text-sm font-semibold text-[rgb(var(--text))]">{telemetryLabel(id)}</div>
                         </div>
                         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                          <label className="flex items-center gap-2 text-xs text-zinc-300">
+                          <label className="flex items-center gap-2 text-xs text-[rgb(var(--text-muted))]">
                             <input
                               type="checkbox"
                               checked={internetExposed}
@@ -278,7 +294,7 @@ export default function ObjectiveWizard() {
                             />
                             Internet exposed
                           </label>
-                          <label className="flex items-center gap-2 text-xs text-zinc-300">
+                          <label className="flex items-center gap-2 text-xs text-[rgb(var(--text-muted))]">
                             <input
                               type="checkbox"
                               checked={authRequired}
@@ -291,7 +307,7 @@ export default function ObjectiveWizard() {
                             />
                             Auth required
                           </label>
-                          <label className="flex items-center gap-2 text-xs text-zinc-300">
+                          <label className="flex items-center gap-2 text-xs text-[rgb(var(--text-muted))]">
                             <input
                               type="checkbox"
                               checked={loggingEnabled}
@@ -305,7 +321,7 @@ export default function ObjectiveWizard() {
                             Logging enabled
                           </label>
                           <select
-                            className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-200"
+                            className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-xs text-[rgb(var(--text-muted))]"
                             value={dataClassification}
                             onChange={(e) =>
                               setRequiredTelemetrySourceOverrides((cur) => ({
@@ -324,7 +340,7 @@ export default function ObjectiveWizard() {
                       </div>
 
                       <div className="mt-2">
-                        <div className="text-xs font-semibold text-zinc-300">Notes (optional)</div>
+                        <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">Notes (optional)</div>
                         <textarea
                           value={notes}
                           onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
@@ -335,7 +351,7 @@ export default function ObjectiveWizard() {
                           }
                           rows={2}
                           placeholder="Log location, retention, required fields, gaps..."
-                          className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+                          className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
                         />
                       </div>
                     </div>
@@ -355,11 +371,11 @@ export default function ObjectiveWizard() {
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
               <Label>Status</Label>
-              <select
-                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
-                value={status}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
-              >
+            <select
+              className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
+              value={status}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
+            >
                 <option value="planned">Planned</option>
                 <option value="blocked">Blocked</option>
                 <option value="implemented">Implemented</option>
@@ -369,11 +385,11 @@ export default function ObjectiveWizard() {
             </div>
             <div>
               <Label>Telemetry readiness</Label>
-              <select
-                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
-                value={telemetryReadiness}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
-              >
+            <select
+              className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
+              value={telemetryReadiness}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
+            >
                 <option value="unknown">Unknown</option>
                 <option value="available">Available</option>
                 <option value="partial">Partial</option>
@@ -385,18 +401,21 @@ export default function ObjectiveWizard() {
       </div>
 
       <div className="flex flex-col items-end justify-between gap-3 md:flex-row md:items-center">
-        <label className="flex items-center gap-2 text-xs text-zinc-400">
+        <label className="flex items-center gap-2 text-xs text-[rgb(var(--muted))]">
           <input type="checkbox" checked={canSave} readOnly />
           Validation passed
         </label>
         <div className="flex items-center justify-end gap-3">
-        <Link to="/objectives" className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40">
+        <Link
+          to="/objectives"
+          className="rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
+        >
           Cancel
         </Link>
         <button
           onClick={save}
           disabled={!canSave}
-          className="rounded-2xl bg-zinc-100 px-5 py-2 text-sm font-semibold text-zinc-900 disabled:opacity-40"
+          className="rounded-2xl bg-[rgb(var(--accent))] px-5 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] disabled:opacity-40"
         >
           Save Objective
         </button>
@@ -407,17 +426,17 @@ export default function ObjectiveWizard() {
 }
 
 function Card({ children }: any) {
-  return <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">{children}</div>
+  return <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">{children}</div>
 }
 function Label({ children, className = '' }: any) {
-  return <div className={`text-xs font-semibold text-zinc-300 ${className}`}>{children}</div>
+  return <div className={`text-xs font-semibold text-[rgb(var(--text-muted))] ${className}`}>{children}</div>
 }
 function Input(props: any) {
   return (
     <input
       {...props}
       className={[
-        'mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600',
+        'mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]',
         props.className ?? '',
       ].join(' ')}
     />
@@ -429,7 +448,7 @@ function Textarea(props: any) {
       {...props}
       rows={4}
       className={[
-        'mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600',
+        'mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]',
         props.className ?? '',
       ].join(' ')}
     />

@@ -33,13 +33,13 @@ export default function History() {
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-xl font-semibold">History</h1>
-          <p className="text-sm text-zinc-400">Audit log of creates, edits, deletes, and exports.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Audit log of creates, edits, deletes, and exports.</p>
         </div>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search history (id, action, text...)"
-          className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600 md:w-[380px]"
+          className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))] md:w-[380px]"
         />
       </div>
 
@@ -62,26 +62,26 @@ export default function History() {
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">No history yet.</div>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-6 text-sm text-[rgb(var(--muted))]">No history yet.</div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">No matches.</div>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-6 text-sm text-[rgb(var(--muted))]">No matches.</div>
       ) : (
         <div className="grid gap-3">
           {filtered.map((e) => {
             const id = e.id ?? -1
             const isOpen = openId === id
             return (
-              <div key={String(e.id ?? `${e.ts}:${e.entityType}:${e.action}`)} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+              <div key={String(e.id ?? `${e.ts}:${e.entityType}:${e.action}`)} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
                 <button type="button" onClick={() => setOpenId(isOpen ? null : id)} className="w-full text-left">
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div className="min-w-0">
-                      <div className="text-xs text-zinc-500">{e.ts}</div>
-                      <div className="mt-1 text-sm font-semibold text-zinc-200">
+                      <div className="text-xs text-[rgb(var(--faint))]">{e.ts}</div>
+                      <div className="mt-1 text-sm font-semibold text-[rgb(var(--text))]">
                         {e.entityType}.{e.action} {e.entityId ? `· ${e.entityId}` : ''}
                       </div>
-                      <div className="mt-1 text-xs text-zinc-400">{e.summary ?? '(no summary)'}</div>
+                      <div className="mt-1 text-xs text-[rgb(var(--muted))]">{e.summary ?? '(no summary)'}</div>
                     </div>
-                    <div className="text-xs text-zinc-600">{isOpen ? 'collapse' : 'expand'}</div>
+                    <div className="text-xs text-[rgb(var(--faint))]">{isOpen ? 'collapse' : 'expand'}</div>
                   </div>
                 </button>
 
@@ -112,7 +112,9 @@ function TabButton({ on, onClick, children }: { on: boolean; onClick: () => void
       onClick={onClick}
       className={[
         'rounded-full border px-3 py-1 text-xs transition',
-        on ? 'border-zinc-600 bg-zinc-900 text-zinc-200' : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-900/40',
+        on
+          ? 'border-[rgb(var(--border-strong))] bg-[rgb(var(--surface2))] text-[rgb(var(--text))]'
+          : 'border-[rgb(var(--border))] bg-[rgb(var(--surface))] text-[rgb(var(--muted))] hover:bg-[rgb(var(--surface2)/0.4)]',
       ].join(' ')}
     >
       {children}
@@ -122,10 +124,11 @@ function TabButton({ on, onClick, children }: { on: boolean; onClick: () => void
 
 function JsonBlock({ title, value }: { title: string; value: unknown }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
-      <div className="text-xs font-semibold text-zinc-300">{title}</div>
-      <pre className="mt-2 max-h-72 overflow-auto text-xs text-zinc-200">{value === undefined ? '(none)' : JSON.stringify(value, null, 2)}</pre>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3">
+      <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">{title}</div>
+      <pre className="mt-2 max-h-72 overflow-auto text-xs text-[rgb(var(--text-muted))]">
+        {value === undefined ? '(none)' : JSON.stringify(value, null, 2)}
+      </pre>
     </div>
   )
 }
-

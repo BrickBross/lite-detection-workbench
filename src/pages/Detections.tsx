@@ -26,27 +26,29 @@ export default function Detections() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-xl font-semibold">Detections</h1>
-          <p className="text-sm text-zinc-400">Review, edit, and score detections before export.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Review, edit, and score detections before export.</p>
         </div>
         <button
           onClick={() => setCreating(true)}
-          className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-white"
+          className="rounded-2xl bg-[rgb(var(--accent))] px-4 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] hover:bg-[rgb(var(--accent)/0.9)]"
         >
           New detection
         </button>
       </div>
 
       {detections.length === 0 ? (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">No detections yet.</div>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-6 text-sm text-[rgb(var(--muted))]">
+          No detections yet.
+        </div>
       ) : (
         <div className="grid gap-3">
           {detections.map((d) => (
-            <div key={d.id} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <div key={d.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
               <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <div className="text-xs text-zinc-500">{d.id}</div>
+                  <div className="text-xs text-[rgb(var(--faint))]">{d.id}</div>
                   <div className="text-lg font-semibold">{d.title}</div>
-                  <div className="mt-1 text-sm text-zinc-400">
+                  <div className="mt-1 text-sm text-[rgb(var(--muted))]">
                     {d.platform} → {d.severity} → {d.objectiveId} — {objMap.get(d.objectiveId) ?? 'Unknown objective'}
                   </div>
                 </div>
@@ -54,7 +56,7 @@ export default function Detections() {
                   <ScorePill score={scoreDetection(d)} />
                   <button
                     onClick={() => setEditing(d)}
-                    className="rounded-2xl border border-zinc-800 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-900/40"
+                    className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
                   >
                     Edit
                   </button>
@@ -70,14 +72,14 @@ export default function Detections() {
                         before: d,
                       })
                     }}
-                    className="rounded-2xl border border-zinc-800 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-900/40"
+                    className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
                   >
                     Delete
                   </button>
                 </div>
               </div>
 
-              <pre className="mt-4 max-h-56 overflow-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-200">
+              <pre className="mt-4 max-h-56 overflow-auto rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3 text-xs text-[rgb(var(--text-muted))]">
                 {d.content}
               </pre>
             </div>
@@ -105,7 +107,7 @@ function scoreDetection(d: Detection) {
 function ScorePill({ score }: { score: number }) {
   const label = score >= 80 ? 'ship' : score >= 55 ? 'draft' : 'fragile'
   return (
-    <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-200">
+    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface2))] px-3 py-1 text-xs text-[rgb(var(--text-muted))]">
       {label} → {score}
     </span>
   )
@@ -153,17 +155,17 @@ function EditModal({ d, onClose }: { d: Detection; onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-      <div className="w-full max-w-4xl rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+      <div className="w-full max-w-4xl rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold">Edit {d.id}</div>
-            <div className="mt-1 text-xs text-zinc-500">
+            <div className="mt-1 text-xs text-[rgb(var(--faint))]">
               {d.platform} → {d.objectiveId}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-2xl border border-zinc-800 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-900/40"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
           >
             Close
           </button>
@@ -176,7 +178,7 @@ function EditModal({ d, onClose }: { d: Detection; onClose: () => void }) {
             </Field>
             <Field label="Severity">
               <select
-                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
                 value={severity}
                 onChange={(e: any) => setSeverity(e.target.value)}
               >
@@ -205,10 +207,16 @@ function EditModal({ d, onClose }: { d: Detection; onClose: () => void }) {
         </div>
 
         <div className="mt-4 flex justify-end gap-3">
-          <button onClick={onClose} className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40">
+          <button
+            onClick={onClose}
+            className="rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
+          >
             Cancel
           </button>
-          <button onClick={save} className="rounded-2xl bg-zinc-100 px-5 py-2 text-sm font-semibold text-zinc-900 hover:bg-white">
+          <button
+            onClick={save}
+            className="rounded-2xl bg-[rgb(var(--accent))] px-5 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] hover:bg-[rgb(var(--accent)/0.9)]"
+          >
             Save
           </button>
         </div>
@@ -220,17 +228,28 @@ function EditModal({ d, onClose }: { d: Detection; onClose: () => void }) {
 function Field({ label, children }: any) {
   return (
     <div>
-      <div className="text-xs font-semibold text-zinc-300">{label}</div>
+      <div className="text-xs font-semibold text-[rgb(var(--text-muted))]">{label}</div>
       <div className="mt-2">{children}</div>
     </div>
   )
 }
 function Input(props: any) {
-  return <input {...props} className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600" />
+  return (
+    <input
+      {...props}
+      className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
+    />
+  )
 }
 function Textarea(props: any) {
   const { rows = 4, ...rest } = props
-  return <textarea {...rest} rows={rows} className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600" />
+  return (
+    <textarea
+      {...rest}
+      rows={rows}
+      className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
+    />
+  )
 }
 
 function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose: () => void }) {
@@ -271,15 +290,15 @@ function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-      <div className="w-full max-w-3xl rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+      <div className="w-full max-w-3xl rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold">New detection</div>
-            <div className="mt-1 text-xs text-zinc-500">Create a starter artifact to tune and export.</div>
+            <div className="mt-1 text-xs text-[rgb(var(--faint))]">Create a starter artifact to tune and export.</div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-2xl border border-zinc-800 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-900/40"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
           >
             Close
           </button>
@@ -289,7 +308,7 @@ function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose
           <div className="space-y-3">
             <Field label="Objective">
               <select
-                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
                 value={objectiveId}
                 onChange={(e: any) => setObjectiveId(e.target.value)}
               >
@@ -304,7 +323,7 @@ function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose
 
             <Field label="Platform">
               <select
-                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
                 value={platform}
                 onChange={(e: any) => setPlatform(e.target.value)}
               >
@@ -318,7 +337,7 @@ function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose
 
             <Field label="Detection severity">
               <select
-                className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm"
                 value={severity}
                 onChange={(e: any) => setSeverity(e.target.value)}
               >
@@ -345,14 +364,14 @@ function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose
         <div className="mt-4 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40"
+            className="rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={!canSave}
-            className="rounded-2xl bg-zinc-100 px-5 py-2 text-sm font-semibold text-zinc-900 disabled:opacity-40"
+            className="rounded-2xl bg-[rgb(var(--accent))] px-5 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] disabled:opacity-40"
           >
             Create
           </button>

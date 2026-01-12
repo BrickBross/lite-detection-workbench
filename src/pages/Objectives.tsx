@@ -1,18 +1,19 @@
 import type { ChangeEvent } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { db } from '../lib/db'
 import { recordAuditEvent } from '../lib/audit'
-import { isoNow } from '../lib/ids'
+import { isoNow, nextId } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
 import { TelemetryPicker } from '../lib/TelemetryPicker'
-import { telemetryLabel } from '../lib/telemetryCatalog'
-import type { Objective } from '../lib/schemas'
+import { TELEMETRY_BY_ID, telemetryDetailsFromProps, telemetryLabel } from '../lib/telemetryCatalog'
+import { ObjectiveSchema, type Objective } from '../lib/schemas'
 
 export default function Objectives() {
   const [items, setItems] = useState<Objective[]>([])
   const [editing, setEditing] = useState<Objective | null>(null)
   const [q, setQ] = useState('')
+  const importInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     const load = async () => setItems(await db.objectives.orderBy('updatedAt').reverse().toArray())
@@ -34,7 +35,24 @@ export default function Objectives() {
   }, [items, q])
 
   const exportObjective = async (objective: Objective) => {
-    const json = JSON.stringify(objective, null, 2)
+    const telemetrySourcesDetailed = (objective.requiredTelemetrySources ?? []).map((id) => {
+      const row = TELEMETRY_BY_ID.get(id)
+      const override = objective.requiredTelemetrySourceOverrides?.[id] ?? {}
+      const defaults = row?.defaults ?? {}
+      const merged = { ...(defaults ?? {}), ...(override ?? {}) }
+      return {
+        id,
+        name: row?.name ?? id,
+        provider: row?.provider ?? null,
+        category: row?.category ?? null,
+        defaults,
+        override,
+        merged,
+        details: telemetryDetailsFromProps(merged),
+      }
+    })
+    const enriched = { ...objective, telemetrySourcesDetailed }
+    const json = JSON.stringify(enriched, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -51,41 +69,133 @@ export default function Objectives() {
     })
   }
 
+  const importObjectivesFromJson = async (file: File) => {
+    const text = await file.text()
+    let parsed: any
+    try {
+      parsed = JSON.parse(text)
+    } catch (e: any) {
+      alert(`Invalid JSON: ${e?.message ?? 'failed to parse'}`)
+      return
+    }
+
+    const rawObjectives: any[] = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.objectives) ? parsed.objectives : [parsed]
+    if (!rawObjectives.length) {
+      alert('No objectives found in JSON.')
+      return
+    }
+
+    const existingIds = new Set<string>((await db.objectives.toCollection().primaryKeys()) as string[])
+    const now = isoNow()
+
+    const imported: Objective[] = []
+    const errors: string[] = []
+
+    for (let i = 0; i < rawObjectives.length; i++) {
+      const candidate = rawObjectives[i]
+      const normalized = {
+        ...candidate,
+        createdAt: typeof candidate?.createdAt === 'string' ? candidate.createdAt : now,
+        updatedAt: typeof candidate?.updatedAt === 'string' ? candidate.updatedAt : now,
+      }
+
+      const parsedObjective = ObjectiveSchema.safeParse(normalized)
+      if (!parsedObjective.success) {
+        errors.push(`Item ${i + 1}: ${parsedObjective.error.issues[0]?.message ?? 'invalid objective'}`)
+        continue
+      }
+
+      let objective = parsedObjective.data
+      const idOk = /^OBJ-\d{4}$/.test(objective.id)
+      const needsNewId = !idOk || existingIds.has(objective.id)
+      if (needsNewId) {
+        const id = nextId('OBJ', Array.from(existingIds))
+        objective = { ...objective, id, createdAt: now, updatedAt: now }
+      }
+
+      existingIds.add(objective.id)
+      imported.push(objective)
+    }
+
+    if (!imported.length) {
+      alert(`No objectives imported.\n\n${errors.join('\n')}`)
+      return
+    }
+
+    await db.transaction('rw', db.objectives, db.audit, async () => {
+      for (const obj of imported) {
+        await db.objectives.put(obj)
+        await recordAuditEvent({
+          entityType: 'objective',
+          action: 'create',
+          entityId: obj.id,
+          summary: `Imported ${obj.id} from JSON`,
+          after: obj,
+          meta: { sourceFile: file.name },
+        })
+      }
+    })
+
+    setItems(await db.objectives.orderBy('updatedAt').reverse().toArray())
+    alert(`Imported ${imported.length} objective(s).${errors.length ? `\n\nSkipped ${errors.length} invalid item(s).` : ''}`)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-xl font-semibold">Objectives</h1>
-          <p className="text-sm text-zinc-400">Define what you want to detect (before writing rules).</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Define what you want to detect (before writing rules).</p>
         </div>
         <div className="flex flex-col gap-2 md:flex-row md:items-center">
           <input
             value={q}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
             placeholder="Search objectives (id, name, MITRE, status...)"
-            className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600 md:w-[340px]"
+            className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))] md:w-[340px]"
           />
-          <Link to="/wizard" className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-white">
+          <Link
+            to="/wizard"
+            className="rounded-2xl bg-[rgb(var(--accent))] px-4 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] hover:bg-[rgb(var(--accent)/0.9)]"
+          >
             New Objective
           </Link>
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-4 py-2 text-sm font-semibold text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+          >
+            Import JSON
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (file) importObjectivesFromJson(file)
+            }}
+          />
         </div>
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-6 text-sm text-[rgb(var(--muted))]">
           No objectives yet. Create one with the wizard.
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">No matches.</div>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-6 text-sm text-[rgb(var(--muted))]">No matches.</div>
       ) : (
         <div className="grid gap-3">
           {filtered.map((o) => (
-            <div key={o.id} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <div key={o.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
               <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <div className="text-xs text-zinc-500">{o.id}</div>
+                  <div className="text-xs text-[rgb(var(--faint))]">{o.id}</div>
                   <div className="text-lg font-semibold">{o.name}</div>
-                  <div className="mt-1 text-sm text-zinc-400">{o.description}</div>
+                  <div className="mt-1 text-sm text-[rgb(var(--muted))]">{o.description}</div>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs">
                     <Badge>{o.status}</Badge>
                     <Badge>{o.telemetryReadiness}</Badge>
@@ -98,24 +208,24 @@ export default function Objectives() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs">
-                  <div className="text-zinc-500">Updated {new Date(o.updatedAt).toLocaleString()}</div>
+                  <div className="text-[rgb(var(--faint))]">Updated {new Date(o.updatedAt).toLocaleString()}</div>
                   <button
                     type="button"
                     onClick={() => exportObjective(o)}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
                   >
                     Export JSON
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditing(o)}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
                   >
                     Edit
                   </button>
                 </div>
               </div>
-              <div className="mt-3 text-xs text-zinc-500">
+              <div className="mt-3 text-xs text-[rgb(var(--faint))]">
                 MITRE: {o.mitre.map((m) => `${m.tactic}/${m.technique}`).join(', ')}
               </div>
             </div>
@@ -143,7 +253,11 @@ export default function Objectives() {
 }
 
 function Badge({ children }: { children: any }) {
-  return <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1">{children}</span>
+  return (
+    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface2))] px-3 py-1 text-[rgb(var(--text-muted))]">
+      {children}
+    </span>
+  )
 }
 
 function EditObjectiveModal({
@@ -245,16 +359,16 @@ function EditObjectiveModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-      <div className="w-full max-w-3xl rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+      <div className="w-full max-w-3xl rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold">Edit objective</div>
-            <div className="mt-1 text-xs text-zinc-500">{o.id}</div>
+            <div className="mt-1 text-xs text-[rgb(var(--faint))]">{o.id}</div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
           >
             Close
           </button>
@@ -281,7 +395,7 @@ function EditObjectiveModal({
                 <button
                   type="button"
                   onClick={() => setExternalReferences((cur) => (cur.length >= 20 ? cur : [...cur, '']))}
-                  className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-1.5 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
                   title="Add another URL"
                 >
                   +
@@ -302,7 +416,7 @@ function EditObjectiveModal({
                       <button
                         type="button"
                         onClick={() => setExternalReferences((cur) => cur.filter((_, idx) => idx !== i))}
-                        className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                        className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
                         title="Remove"
                       >
                         A-
@@ -316,7 +430,7 @@ function EditObjectiveModal({
               <div>
                 <Label>Detection severity</Label>
                 <select
-                  className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                  className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-xs"
                   value={severity}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setSeverity(e.target.value as any)}
                 >
@@ -329,7 +443,7 @@ function EditObjectiveModal({
               <div>
                 <Label>Urgency</Label>
                 <select
-                  className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                  className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-xs"
                   value={urgency}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
                 >
@@ -348,7 +462,7 @@ function EditObjectiveModal({
               {mitre.map((m, i) => (
                 <div key={`${m.technique}-${i}`} className="grid grid-cols-12 gap-2">
                   <select
-                    className="col-span-5 rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                    className="col-span-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-xs"
                     value={m.technique}
                     onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                       const t = mitreOptions.find((x) => x.technique === e.target.value)
@@ -373,7 +487,7 @@ function EditObjectiveModal({
                   <button
                     type="button"
                     onClick={() => setMitre((cur) => cur.filter((_, idx) => idx !== i))}
-                    className="col-span-1 rounded-2xl border border-zinc-800 bg-zinc-900/30 px-2 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                    className="col-span-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-2 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
                     title="Remove"
                   >
                     ×
@@ -384,7 +498,7 @@ function EditObjectiveModal({
             <button
               type="button"
               onClick={() => setMitre((cur) => [...cur, { tactic: 'Execution', technique: 'T1059' }])}
-              className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+              className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
             >
               + Add mapping
             </button>
@@ -405,7 +519,7 @@ function EditObjectiveModal({
               <div>
                 <Label>Status</Label>
                 <select
-                  className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                  className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-xs"
                   value={status}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
                 >
@@ -419,7 +533,7 @@ function EditObjectiveModal({
               <div>
                 <Label>Telemetry readiness</Label>
                 <select
-                  className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs"
+                  className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-xs"
                   value={telemetryReadiness}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
                 >
@@ -444,7 +558,7 @@ function EditObjectiveModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40"
+            className="rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.4)]"
           >
             Cancel
           </button>
@@ -452,7 +566,7 @@ function EditObjectiveModal({
             type="button"
             onClick={save}
             disabled={!canSave}
-            className="rounded-2xl bg-zinc-100 px-5 py-2 text-sm font-semibold text-zinc-900 disabled:opacity-40"
+            className="rounded-2xl bg-[rgb(var(--accent))] px-5 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] disabled:opacity-40"
           >
             Save
           </button>
@@ -463,17 +577,17 @@ function EditObjectiveModal({
 }
 
 function Card({ children }: any) {
-  return <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">{children}</div>
+  return <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">{children}</div>
 }
 function Label({ children, className = '' }: any) {
-  return <div className={`text-xs font-semibold text-zinc-300 ${className}`}>{children}</div>
+  return <div className={`text-xs font-semibold text-[rgb(var(--text-muted))] ${className}`}>{children}</div>
 }
 function Input(props: any) {
   return (
     <input
       {...props}
       className={[
-        'mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600',
+        'mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]',
         props.className ?? '',
       ].join(' ')}
     />
@@ -484,7 +598,7 @@ function Textarea(props: any) {
     <textarea
       {...props}
       rows={4}
-      className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+      className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
     />
   )
 }

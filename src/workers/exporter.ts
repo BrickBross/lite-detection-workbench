@@ -3,7 +3,7 @@ import JSZip from 'jszip'
 import type { ExportOptions, ExportPayload } from '../lib/exportTypes'
 import { promptPack } from '../lib/promptPack'
 import type { Detection, Objective, Signal } from '../lib/schemas'
-import { TELEMETRY_BY_ID, telemetryDetailsFromProps } from '../lib/telemetryCatalog'
+import { TELEMETRY_BY_ID, TELEMETRY_ROWS, telemetryDetailsFromProps } from '../lib/telemetryCatalog'
 
 function objectiveTelemetryDetails(o: Objective, id: string): { name: string; details: string[] } {
   const row = TELEMETRY_BY_ID.get(id)
@@ -11,6 +11,26 @@ function objectiveTelemetryDetails(o: Objective, id: string): { name: string; de
   const override = o.requiredTelemetrySourceOverrides?.[id] ?? {}
   const merged = { ...(row.defaults ?? {}), ...(override ?? {}) }
   return { name: row.name, details: telemetryDetailsFromProps(merged) }
+}
+
+function objectiveTelemetryExpanded(o: Objective) {
+  const required = o.requiredTelemetrySources ?? []
+  return required.map((id) => {
+    const row = TELEMETRY_BY_ID.get(id)
+    const override = o.requiredTelemetrySourceOverrides?.[id] ?? {}
+    const defaults = row?.defaults ?? {}
+    const merged = { ...(defaults ?? {}), ...(override ?? {}) }
+    return {
+      id,
+      name: row?.name ?? id,
+      provider: row?.provider ?? null,
+      category: row?.category ?? null,
+      defaults,
+      override,
+      merged,
+      details: telemetryDetailsFromProps(merged),
+    }
+  })
 }
 
 function yamlEscape(s: string) {
@@ -195,13 +215,14 @@ It is **inspired by** concepts from the **OpenTide detection engineering framewo
 
 ## Contents
 - \`project/project.json\`: canonical project model
-- \`objectives/\`: detection objectives
-- \`signals/\`: telemetry signal definitions
-- \`detections/\`: detection content per platform (Sigma / KQL / CrowdStrike / notes)
-- \`docs/\`: generated documentation
-- \`bundles/\` (optional): human-friendly packs + summary
-- \`bundles/manifests/\` (optional): machine-friendly JSON indexes
-- \`.github/prompts/\` (optional): Copilot prompt pack for rule generation
+ - \`objectives/\`: detection objectives
+ - \`signals/\`: telemetry signal definitions
+ - \`detections/\`: detection content per platform (Sigma / KQL / CrowdStrike / notes)
+ - \`telemetry/\`: telemetry catalog (for resolving source ids)
+ - \`docs/\`: generated documentation
+ - \`bundles/\` (optional): human-friendly packs + summary
+ - \`bundles/manifests/\` (optional): machine-friendly JSON indexes
+ - \`.github/prompts/\` (optional): Copilot prompt pack for rule generation
 
 ## Next steps
 1. Review YAML and detection content.
@@ -212,6 +233,7 @@ It is **inspired by** concepts from the **OpenTide detection engineering framewo
   )
 
   root.file('project/project.json', JSON.stringify(payload, null, 2))
+  root.file('telemetry/catalog.json', JSON.stringify({ sources: TELEMETRY_ROWS }, null, 2))
 
   // Coverage (very lightweight derived)
   const coverage = payload.objectives.map((o) => ({
@@ -230,7 +252,8 @@ It is **inspired by** concepts from the **OpenTide detection engineering framewo
   // Objective-centric export (platform-agnostic structure)
   for (const o of payload.objectives) {
     const oFolder = root.folder(`objectives/${o.id}`)!
-    oFolder.file('objective.yaml', toYaml(o) + '\n')
+    const enrichedObjective = { ...o, telemetrySourcesDetailed: objectiveTelemetryExpanded(o) }
+    oFolder.file('objective.yaml', toYaml(enrichedObjective) + '\n')
     oFolder.file('README.md', mdObjective(o))
 
     const ds = detByObj.get(o.id) ?? []
