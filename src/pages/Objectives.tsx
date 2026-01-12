@@ -172,52 +172,57 @@ export default function Objectives() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
+      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold">Objectives</h1>
-          <p className="text-sm text-[rgb(var(--muted))]">Define what you want to detect (before writing rules).</p>
+          <p className="text-xs text-[rgb(var(--muted))]">Define what you want to detect (before writing rules).</p>
         </div>
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
-          <input
-            value={q}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
-            placeholder="Search objectives (id, name, MITRE, status...)"
-            className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))] md:w-[340px]"
-          />
-          <select
-            value={groupBy}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setGroupBy(e.target.value as any)}
-            className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm md:w-[220px]"
-            aria-label="Group objectives by"
-          >
-            <option value="none">Group: none</option>
-            <option value="mitre">Group: MITRE technique</option>
-            <option value="telemetry">Group: telemetry source</option>
-          </select>
-          <Link
-            to="/wizard"
-            className="rounded-2xl bg-[rgb(var(--accent))] px-4 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] hover:bg-[rgb(var(--accent)/0.9)]"
-          >
-            New Objective
-          </Link>
-          <button
-            type="button"
-            onClick={() => importInputRef.current?.click()}
-            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-4 py-2 text-sm font-semibold text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
-          >
-            Import JSON
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              e.target.value = ''
-              if (file) importObjectivesFromJson(file)
-            }}
-          />
+        <div className="flex min-w-0 flex-col gap-2 md:items-end">
+          <div className="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-end">
+            <input
+              value={q}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
+              placeholder="Search objectives (id, name, MITRE, status...)"
+              className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))] md:w-[360px]"
+            />
+            <select
+              value={groupBy}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setGroupBy(e.target.value as any)}
+              className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm md:w-[240px]"
+              aria-label="Group objectives by"
+            >
+              <option value="none">Group: none</option>
+              <option value="mitre">Group: MITRE technique</option>
+              <option value="telemetry">Group: telemetry source</option>
+            </select>
+          </div>
+
+          <div className="flex w-full flex-col gap-2 md:flex-row md:justify-end">
+            <Link
+              to="/wizard"
+              className="rounded-2xl bg-[rgb(var(--accent))] px-4 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] hover:bg-[rgb(var(--accent)/0.9)]"
+            >
+              New Objective
+            </Link>
+            <button
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-4 py-2 text-sm font-semibold text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+            >
+              Import JSON
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) importObjectivesFromJson(file)
+              }}
+            />
+          </div>
         </div>
       </div>
 
