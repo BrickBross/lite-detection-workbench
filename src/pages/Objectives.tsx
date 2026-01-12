@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { db } from '../lib/db'
 import { isoNow } from '../lib/ids'
@@ -11,6 +11,7 @@ import type { Objective } from '../lib/schemas'
 export default function Objectives() {
   const [items, setItems] = useState<Objective[]>([])
   const [editing, setEditing] = useState<Objective | null>(null)
+  const [q, setQ] = useState('')
 
   useEffect(() => {
     const load = async () => setItems(await db.objectives.orderBy('updatedAt').reverse().toArray())
@@ -18,26 +19,46 @@ export default function Objectives() {
   }, [])
 
   const mitreOptions = useMitreTechniques()
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase()
+    if (!query) return items
+    return items.filter((o) => {
+      const mitreText = (o.mitre ?? []).map((m) => `${m.tactic} ${m.technique} ${m.subtechnique ?? ''}`).join(' ')
+      const telemetryText = (o.requiredTelemetrySources ?? []).join(' ') + ' ' + (o.otherTelemetrySources ?? []).join(' ')
+      const hay = `${o.id} ${o.name} ${o.description} ${o.status} ${o.telemetryReadiness} ${o.severity ?? ''} ${o.urgency ?? ''} ${mitreText} ${telemetryText}`.toLowerCase()
+      return hay.includes(query)
+    })
+  }, [items, q])
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-xl font-semibold">Objectives</h1>
           <p className="text-sm text-zinc-400">Define what you want to detect (before writing rules).</p>
         </div>
-        <Link to="/wizard" className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-white">
-          New Objective
-        </Link>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <input
+            value={q}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
+            placeholder="Search objectives (id, name, MITRE, status...)"
+            className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600 md:w-[340px]"
+          />
+          <Link to="/wizard" className="rounded-2xl bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-white">
+            New Objective
+          </Link>
+        </div>
       </div>
 
       {items.length === 0 ? (
         <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">
           No objectives yet. Create one with the wizard.
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 text-sm text-zinc-400">No matches.</div>
       ) : (
         <div className="grid gap-3">
-          {items.map((o) => (
+          {filtered.map((o) => (
             <div key={o.id} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
               <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                 <div>

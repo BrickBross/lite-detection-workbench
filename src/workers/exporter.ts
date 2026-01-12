@@ -3,7 +3,15 @@ import JSZip from 'jszip'
 import type { ExportOptions, ExportPayload } from '../lib/exportTypes'
 import { promptPack } from '../lib/promptPack'
 import type { Detection, Objective, Signal } from '../lib/schemas'
-import { TELEMETRY_BY_ID } from '../lib/telemetryCatalog'
+import { TELEMETRY_BY_ID, telemetryDetailsFromProps } from '../lib/telemetryCatalog'
+
+function objectiveTelemetryDetails(o: Objective, id: string): { name: string; details: string[] } {
+  const row = TELEMETRY_BY_ID.get(id)
+  if (!row) return { name: id, details: [] }
+  const override = o.requiredTelemetrySourceOverrides?.[id] ?? {}
+  const merged = { ...(row.defaults ?? {}), ...(override ?? {}) }
+  return { name: row.name, details: telemetryDetailsFromProps(merged) }
+}
 
 function yamlEscape(s: string) {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
@@ -36,9 +44,8 @@ function mdObjective(o: Objective) {
     ? [
         '**Required telemetry sources:**',
         ...required.map((id) => {
-          const row = TELEMETRY_BY_ID.get(id)
-          if (!row) return `- ${id}`
-          return `- ${row.name}: ${row.details.join(' • ')}`
+          const { name, details } = objectiveTelemetryDetails(o, id)
+          return `- ${name}${details.length ? `: ${details.join(' • ')}` : ''}`
         }),
         '',
       ].join('\n')
@@ -83,9 +90,8 @@ function mdObjectivePack({
         '## Required telemetry sources',
         required
           .map((id) => {
-            const row = TELEMETRY_BY_ID.get(id)
-            if (!row) return `- ${id}`
-            return `- ${row.name}: ${row.details.join(' • ')}`
+            const { name, details } = objectiveTelemetryDetails(objective, id)
+            return `- ${name}${details.length ? `: ${details.join(' • ')}` : ''}`
           })
           .join('\n'),
         '',

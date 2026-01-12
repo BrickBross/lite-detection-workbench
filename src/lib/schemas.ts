@@ -10,6 +10,14 @@ export const MitreRef = z.object({
   subtechnique: z.string().optional(),
 })
 
+export const TelemetrySourcePropsSchema = z.object({
+  dataClassification: z.string().optional(),
+  internetExposed: z.boolean().optional(),
+  authRequired: z.boolean().optional(),
+  loggingEnabled: z.boolean().optional(),
+  notes: z.string().optional(),
+})
+
 export const ObjectiveSchema = z.object({
   id: z.string().regex(/^OBJ-\d{4}$/),
   name: z.string().min(3),
@@ -22,6 +30,7 @@ export const ObjectiveSchema = z.object({
   severity: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   urgency: z.enum(['p0', 'p1', 'p2', 'p3']).default('p2'),
   requiredTelemetrySources: z.array(z.string()).default([]),
+  requiredTelemetrySourceOverrides: z.record(TelemetrySourcePropsSchema).default({}),
   otherTelemetrySources: z.array(z.string()).default([]),
   telemetryNotes: z.string().optional(),
   createdAt: z.string(),

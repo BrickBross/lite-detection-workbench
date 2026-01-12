@@ -2,11 +2,20 @@ import { SERVICE_CATALOG } from './threatCanvasCatalog'
 
 export type TelemetryProvider = 'aws' | 'azure' | 'gcp' | 'saas' | 'onprem'
 
+export type TelemetrySourceProps = {
+  dataClassification?: string
+  internetExposed?: boolean
+  authRequired?: boolean
+  loggingEnabled?: boolean
+  notes?: string
+}
+
 export type TelemetryCatalogRow = {
   id: string
   provider: TelemetryProvider
   category: string
   name: string
+  defaults: TelemetrySourceProps
   details: string[]
 }
 
@@ -30,13 +39,23 @@ function providerLabel(p: TelemetryProvider) {
   return 'On-prem'
 }
 
-function rowDetails(raw: any): string[] {
+function rowDefaults(raw: any): TelemetrySourceProps {
   const props = raw?.defaultProps ?? {}
+  const out: TelemetrySourceProps = {}
+  if (typeof props.dataClassification === 'string') out.dataClassification = props.dataClassification
+  if (typeof props.internetExposed === 'boolean') out.internetExposed = props.internetExposed
+  if (typeof props.authRequired === 'boolean') out.authRequired = props.authRequired
+  if (typeof props.loggingEnabled === 'boolean') out.loggingEnabled = props.loggingEnabled
+  return out
+}
+
+function rowDetails(props: TelemetrySourceProps): string[] {
   const details: string[] = []
   if (typeof props.dataClassification === 'string') details.push(`classification: ${props.dataClassification}`)
   if (typeof props.internetExposed === 'boolean') details.push(`internet exposed: ${props.internetExposed ? 'yes' : 'no'}`)
   if (typeof props.authRequired === 'boolean') details.push(`auth required: ${props.authRequired ? 'yes' : 'no'}`)
   if (typeof props.loggingEnabled === 'boolean') details.push(`logging enabled: ${props.loggingEnabled ? 'yes' : 'no'}`)
+  if (typeof props.notes === 'string' && props.notes.trim()) details.push(`notes: ${props.notes.trim()}`)
   return details
 }
 
@@ -44,13 +63,17 @@ const ALLOWED: TelemetryProvider[] = ['aws', 'azure', 'gcp', 'saas', 'onprem']
 
 const rows: TelemetryCatalogRow[] = (SERVICE_CATALOG as any[])
   .filter((r) => ALLOWED.includes(r?.provider))
-  .map((r) => ({
-    id: String(r.id),
-    provider: r.provider as TelemetryProvider,
-    category: String(r.category ?? r.defaultProps?.serviceCategory ?? 'Other'),
-    name: String(r.name ?? 'Unknown'),
-    details: rowDetails(r),
-  }))
+  .map((r) => {
+    const defaults = rowDefaults(r)
+    return {
+      id: String(r.id),
+      provider: r.provider as TelemetryProvider,
+      category: String(r.category ?? r.defaultProps?.serviceCategory ?? 'Other'),
+      name: String(r.name ?? 'Unknown'),
+      defaults,
+      details: rowDetails(defaults),
+    }
+  })
   .sort((a, b) => (a.provider + a.category + a.name).localeCompare(b.provider + b.category + b.name))
 
 export const TELEMETRY_ROWS = rows
@@ -85,3 +108,10 @@ export function telemetryDetails(id: string) {
   return TELEMETRY_BY_ID.get(id)?.details ?? []
 }
 
+export function telemetryDefaults(id: string): TelemetrySourceProps | undefined {
+  return TELEMETRY_BY_ID.get(id)?.defaults
+}
+
+export function telemetryDetailsFromProps(props: TelemetrySourceProps): string[] {
+  return rowDetails(props)
+}

@@ -1,10 +1,11 @@
 import type { ChangeEvent } from 'react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { nextId, isoNow } from '../lib/ids'
 import { useMitreTechniques } from '../lib/mitreData'
 import { TelemetryPicker } from '../lib/TelemetryPicker'
+import { telemetryDefaults, telemetryLabel } from '../lib/telemetryCatalog'
 import type { Objective } from '../lib/schemas'
 
 export default function ObjectiveWizard() {
@@ -13,18 +14,44 @@ export default function ObjectiveWizard() {
   const [description, setDescription] = useState('')
   const [mitre, setMitre] = useState<string>('T1003')
   const [tactic, setTactic] = useState<string>('Credential Access')
+  const [mitreSearch, setMitreSearch] = useState('')
   const [status, setStatus] = useState<Objective['status']>('planned')
   const [telemetryReadiness, setTelemetryReadiness] = useState<Objective['telemetryReadiness']>('partial')
   const [rationale, setRationale] = useState('')
   const [severity, setSeverity] = useState<Objective['severity']>('medium')
   const [urgency, setUrgency] = useState<Objective['urgency']>('p2')
   const [requiredTelemetrySources, setRequiredTelemetrySources] = useState<string[]>([])
+  const [requiredTelemetrySourceOverrides, setRequiredTelemetrySourceOverrides] = useState<Objective['requiredTelemetrySourceOverrides']>({})
   const [otherTelemetrySourcesText, setOtherTelemetrySourcesText] = useState('')
   const [telemetryNotes, setTelemetryNotes] = useState('')
 
   const mitreOptions = useMitreTechniques()
 
   const canSave = name.trim().length >= 3 && description.trim().length >= 3
+
+  const filteredMitreOptions = useMemo(() => {
+    const q = mitreSearch.trim().toLowerCase()
+    if (!q) return mitreOptions
+    return mitreOptions.filter((x) => `${x.technique} ${x.name} ${x.tactic}`.toLowerCase().includes(q)).slice(0, 200)
+  }, [mitreOptions, mitreSearch])
+
+  const selectedTelemetry = useMemo(() => requiredTelemetrySources.map((id) => ({ id, defaults: telemetryDefaults(id) })), [requiredTelemetrySources])
+
+  const setSelectedTelemetrySources = (next: string[]) => {
+    setRequiredTelemetrySources(next)
+    setRequiredTelemetrySourceOverrides((cur) => {
+      const out: Objective['requiredTelemetrySourceOverrides'] = {}
+      for (const id of next) {
+        const existing = cur[id]
+        if (existing) out[id] = existing
+        else {
+          const d = telemetryDefaults(id)
+          out[id] = d ? { ...d } : {}
+        }
+      }
+      return out
+    })
+  }
 
   const save = async () => {
     const existing = await db.objectives.toCollection().primaryKeys()
@@ -41,6 +68,7 @@ export default function ObjectiveWizard() {
       severity,
       urgency,
       requiredTelemetrySources,
+      requiredTelemetrySourceOverrides,
       otherTelemetrySources: otherTelemetrySourcesText
         .split(',')
         .map((x) => x.trim())
@@ -115,6 +143,12 @@ export default function ObjectiveWizard() {
 
         <Card>
           <Label>MITRE mapping (lite)</Label>
+          <input
+            value={mitreSearch}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setMitreSearch(e.target.value)}
+            placeholder="Search MITRE techniques (e.g., T1003, credential dumping)"
+            className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+          />
           <div className="grid grid-cols-2 gap-3">
             <select
               className="rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
@@ -125,7 +159,7 @@ export default function ObjectiveWizard() {
                 if (t) setTactic(t.tactic)
               }}
             >
-              {mitreOptions.map((t) => (
+              {filteredMitreOptions.map((t) => (
                 <option key={t.technique} value={t.technique}>
                   {t.technique} - {t.name}
                 </option>
@@ -137,11 +171,110 @@ export default function ObjectiveWizard() {
           <Label className="mt-3">Required telemetry sources</Label>
           <TelemetryPicker
             selectedIds={requiredTelemetrySources}
-            onChangeSelectedIds={setRequiredTelemetrySources}
+            onChangeSelectedIds={setSelectedTelemetrySources}
             otherTelemetrySourcesText={otherTelemetrySourcesText}
             onChangeOtherTelemetrySourcesText={setOtherTelemetrySourcesText}
             defaultCollapsed
           />
+
+          {selectedTelemetry.length ? (
+            <div className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-900/20 p-3">
+              <div className="text-xs font-semibold text-zinc-300">Selected source properties</div>
+              <div className="mt-2 space-y-2">
+                {selectedTelemetry.map(({ id, defaults }) => {
+                  const cur = requiredTelemetrySourceOverrides[id] ?? {}
+                  const dataClassification = cur.dataClassification ?? defaults?.dataClassification ?? ''
+                  const internetExposed = cur.internetExposed ?? defaults?.internetExposed ?? false
+                  const authRequired = cur.authRequired ?? defaults?.authRequired ?? false
+                  const loggingEnabled = cur.loggingEnabled ?? defaults?.loggingEnabled ?? false
+                  const notes = cur.notes ?? ''
+                  return (
+                    <div key={id} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
+                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div className="min-w-0">
+                          <div className="text-xs text-zinc-500">{id}</div>
+                          <div className="truncate text-sm font-semibold text-zinc-200">{telemetryLabel(id)}</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                          <label className="flex items-center gap-2 text-xs text-zinc-300">
+                            <input
+                              type="checkbox"
+                              checked={internetExposed}
+                              onChange={(e) =>
+                                setRequiredTelemetrySourceOverrides((cur) => ({
+                                  ...cur,
+                                  [id]: { ...(cur[id] ?? {}), internetExposed: e.target.checked },
+                                }))
+                              }
+                            />
+                            Internet exposed
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-zinc-300">
+                            <input
+                              type="checkbox"
+                              checked={authRequired}
+                              onChange={(e) =>
+                                setRequiredTelemetrySourceOverrides((cur) => ({
+                                  ...cur,
+                                  [id]: { ...(cur[id] ?? {}), authRequired: e.target.checked },
+                                }))
+                              }
+                            />
+                            Auth required
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-zinc-300">
+                            <input
+                              type="checkbox"
+                              checked={loggingEnabled}
+                              onChange={(e) =>
+                                setRequiredTelemetrySourceOverrides((cur) => ({
+                                  ...cur,
+                                  [id]: { ...(cur[id] ?? {}), loggingEnabled: e.target.checked },
+                                }))
+                              }
+                            />
+                            Logging enabled
+                          </label>
+                          <select
+                            className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-200"
+                            value={dataClassification}
+                            onChange={(e) =>
+                              setRequiredTelemetrySourceOverrides((cur) => ({
+                                ...cur,
+                                [id]: { ...(cur[id] ?? {}), dataClassification: e.target.value },
+                              }))
+                            }
+                          >
+                            <option value="">(classification)</option>
+                            <option value="Public">Public</option>
+                            <option value="Internal">Internal</option>
+                            <option value="Confidential">Confidential</option>
+                            <option value="Restricted">Restricted</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="mt-2">
+                        <div className="text-xs font-semibold text-zinc-300">Notes (optional)</div>
+                        <textarea
+                          value={notes}
+                          onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                            setRequiredTelemetrySourceOverrides((cur) => ({
+                              ...cur,
+                              [id]: { ...(cur[id] ?? {}), notes: e.target.value },
+                            }))
+                          }
+                          rows={2}
+                          placeholder="Log location, retention, required fields, gaps..."
+                          className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
 
           <Label className="mt-3">Telemetry notes (optional)</Label>
           <Textarea
@@ -182,7 +315,12 @@ export default function ObjectiveWizard() {
         </Card>
       </div>
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex flex-col items-end justify-between gap-3 md:flex-row md:items-center">
+        <label className="flex items-center gap-2 text-xs text-zinc-400">
+          <input type="checkbox" checked={canSave} readOnly />
+          Validation passed
+        </label>
+        <div className="flex items-center justify-end gap-3">
         <Link to="/objectives" className="rounded-2xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/40">
           Cancel
         </Link>
@@ -193,6 +331,7 @@ export default function ObjectiveWizard() {
         >
           Save Objective
         </button>
+        </div>
       </div>
     </div>
   )

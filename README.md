@@ -12,7 +12,7 @@ It is **inspired by the OpenTide philosophy** (objectives, coverage-driven think
 
 - A structured way to design detections before writing rules
 - A UI for modelling objectives, feasibility, and gaps
-- Starter detections for Sigma, KQL, CrowdStrike, Exabeam CIM notes
+- Starter detections for common formats (YAML) and query languages
 - Lightweight MITRE-style coverage visualization
 - A Git-native workflow (export → commit → CI/CD)
 - A Copilot-friendly authoring environment
@@ -61,7 +61,7 @@ These are **not rules**. They are **goals**.
 
 For each objective, you capture:
 
-- Target platforms (Sigma, KQL, CrowdStrike, Exabeam, etc.)
+- Target platforms (your SIEM/EDR/log pipeline)
 - Telemetry readiness (available / partial / missing)
 - Rationale and risk context
 - Status (planned, blocked, implemented, tuned, validated)
@@ -74,11 +74,10 @@ This makes **blind spots visible**.
 
 Instead of starting from scratch, you use guided templates to generate **starter detections** for:
 
-- Sigma
-- Microsoft Sentinel (KQL)
-- CrowdStrike SIEM
-- CrowdStrike EDR
-- Exabeam CIM alignment notes
+- YAML-based rule formats
+- SIEM query languages
+- EDR/endpoint detections
+- Field mapping / normalization notes
 
 These are **hypotheses**, not final answers.
 
@@ -109,6 +108,8 @@ Everything is exported as a **repo-shaped ZIP** containing:
 You unzip it, open in VS Code, commit, and push.
 
 Your **Git repo becomes the source of truth**.
+
+Everything runs in your browser and stores locally in IndexedDB (no backend).
 
 ---
 
@@ -157,6 +158,13 @@ npm ci
 npm run dev
 ```
 
+Open `http://localhost:5173/lite-detection-workbench/`.
+
+If you fork/rename the repo, update the GitHub Pages base path in:
+
+- `vite.config.ts` (`base`)
+- `src/main.tsx` (`<BrowserRouter basename=...>`)
+
 ---
 
 ## 🌍 GitHub Pages deployment
@@ -186,10 +194,10 @@ This repo includes:
 
 These make GitHub Copilot Chat much more useful for:
 
-- Generating Sigma rules from objectives
-- Generating KQL from objectives
-- Creating Exabeam CIM alignment notes
-- Proposing CrowdStrike SIEM/EDR strategies
+- Generating starter detections from objectives
+- Translating objectives into SIEM queries
+- Creating field-mapping/normalization notes
+- Proposing SIEM/EDR detection strategies
 
 ---
 
