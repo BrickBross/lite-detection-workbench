@@ -230,7 +230,7 @@ export default function ObjectiveWizard() {
               >
                 {withCurrentOption(settings.severityOptions, severity).map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {formatOptionLabel(option)}
                   </option>
                 ))}
               </select>
@@ -244,7 +244,7 @@ export default function ObjectiveWizard() {
               >
                 {withCurrentOption(settings.urgencyOptions, urgency).map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {formatOptionLabel(option)}
                   </option>
                 ))}
               </select>
@@ -419,7 +419,7 @@ export default function ObjectiveWizard() {
             >
                 {withCurrentOption(settings.statusOptions, status).map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {formatOptionLabel(option)}
                   </option>
                 ))}
               </select>
@@ -433,7 +433,7 @@ export default function ObjectiveWizard() {
             >
                 {withCurrentOption(settings.telemetryReadinessOptions, telemetryReadiness).map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {formatOptionLabel(option)}
                   </option>
                 ))}
               </select>
@@ -495,4 +495,9 @@ function Textarea(props: any) {
       ].join(' ')}
     />
   )
+}
+
+function formatOptionLabel(value: string) {
+  if (!value) return value
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }

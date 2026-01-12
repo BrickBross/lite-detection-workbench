@@ -189,7 +189,7 @@ function EditModal({ d, settings, onClose }: { d: Detection; settings: Workbench
               >
                 {withCurrentOption(settings.severityOptions, severity).map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {formatOptionLabel(s)}
                   </option>
                 ))}
               </select>
@@ -255,6 +255,11 @@ function Textarea(props: any) {
       className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
     />
   )
+}
+
+function formatOptionLabel(value: string) {
+  if (!value) return value
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
 function CreateModal({
@@ -361,7 +366,7 @@ function CreateModal({
               >
                 {withCurrentOption(settings.severityOptions, severity).map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {formatOptionLabel(s)}
                   </option>
                 ))}
               </select>

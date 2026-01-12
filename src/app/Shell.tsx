@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 
 const nav = [
   { to: '/', label: 'Objectives', icon: Boxes },
-  { to: '/mitre', label: 'MITRE', icon: Shield },
   { to: '/history', label: 'History', icon: Clock },
   { to: '/about', label: 'About', icon: Info },
   { to: '/settings', label: 'Settings', icon: Settings },

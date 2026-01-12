@@ -86,7 +86,40 @@ export default function Objectives() {
         details: telemetryDetailsFromProps(merged),
       }
     })
-    const enriched = { ...objective, telemetrySourcesDetailed }
+    const mitreExpanded = (objective.mitre ?? []).map((m) => ({
+      ...m,
+      name: mitreNameByTechnique.get(m.technique) ?? null,
+    }))
+    const assistantContext = {
+      objectiveSummary: `${objective.name}: ${objective.description}`,
+      intent: objective.rationale ?? null,
+      responsePlan: objective.responsePlan ?? null,
+      mitre: mitreExpanded,
+      telemetryReadiness: objective.telemetryReadiness,
+      requiredTelemetrySources: telemetrySourcesDetailed,
+      otherTelemetrySources: objective.otherTelemetrySources ?? [],
+      queryAvailable: objective.queryAvailable ?? false,
+      query: objective.queryAvailable ? objective.query ?? null : null,
+      desiredOutputs: [
+        'detection_idea_summary',
+        'recommended_data_sources',
+        'candidate_detection_queries',
+        'testing_and_false_positive_notes',
+      ],
+      clarifyQuestions: [
+        'Which SIEM or analytics platform should the detection target?',
+        'Which detection format is preferred (Sigma, KQL, SPL, EQL, SQL, or vendor-specific)?',
+        'Is there a preferred schema or data model (ECS, CIM, OCSF, vendor schema)?',
+        'What log sources are available and how complete is the telemetry?',
+        'Are there known false positives or exclusions to bake in?',
+      ],
+    }
+    const enriched = {
+      ...objective,
+      mitreExpanded,
+      telemetrySourcesDetailed,
+      assistantContext,
+    }
     const json = JSON.stringify(enriched, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -572,7 +605,7 @@ function EditObjectiveModal({
                 >
                   {withCurrentOption(settings.severityOptions, severity).map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {formatOptionLabel(option)}
                     </option>
                   ))}
                 </select>
@@ -586,7 +619,7 @@ function EditObjectiveModal({
                 >
                   {withCurrentOption(settings.urgencyOptions, urgency).map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {formatOptionLabel(option)}
                     </option>
                   ))}
                 </select>
@@ -663,7 +696,7 @@ function EditObjectiveModal({
                 >
                   {withCurrentOption(settings.statusOptions, status).map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {formatOptionLabel(option)}
                     </option>
                   ))}
                 </select>
@@ -677,7 +710,7 @@ function EditObjectiveModal({
                 >
                   {withCurrentOption(settings.telemetryReadinessOptions, telemetryReadiness).map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {formatOptionLabel(option)}
                     </option>
                   ))}
                 </select>
@@ -741,4 +774,9 @@ function Textarea(props: any) {
       className="mt-2 w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))]"
     />
   )
+}
+
+function formatOptionLabel(value: string) {
+  if (!value) return value
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }
