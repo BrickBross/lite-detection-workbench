@@ -178,7 +178,7 @@ export default function Objectives() {
           <p className="text-xs text-[rgb(var(--muted))]">Define what you want to detect (before writing rules).</p>
         </div>
         <div className="flex min-w-0 flex-col gap-2 md:items-end">
-          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+          <div className="flex w-full flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-end">
             <input
               value={q}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
@@ -195,9 +195,6 @@ export default function Objectives() {
               <option value="mitre">Group: MITRE technique</option>
               <option value="telemetry">Group: telemetry source</option>
             </select>
-          </div>
-
-          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
             <Link
               to="/wizard"
               className="rounded-2xl bg-[rgb(var(--accent))] px-4 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] hover:bg-[rgb(var(--accent)/0.9)]"
