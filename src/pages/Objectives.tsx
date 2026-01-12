@@ -8,6 +8,7 @@ import { useMitreTechniques } from '../lib/mitreData'
 import { TelemetryPicker } from '../lib/TelemetryPicker'
 import { TELEMETRY_BY_ID, telemetryDetailsFromProps, telemetryLabel } from '../lib/telemetryCatalog'
 import { ObjectiveSchema, type Objective } from '../lib/schemas'
+import { defaultSettingsSnapshot, ensureSettings, withCurrentOption, type WorkbenchSettings } from '../lib/settings'
 
 export default function Objectives() {
   const [items, setItems] = useState<Objective[]>([])
@@ -15,10 +16,14 @@ export default function Objectives() {
   const [q, setQ] = useState('')
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const [groupBy, setGroupBy] = useState<'none' | 'mitre' | 'telemetry'>('none')
+  const [settings, setSettings] = useState<WorkbenchSettings>(defaultSettingsSnapshot())
 
   useEffect(() => {
     const load = async () => setItems(await db.objectives.orderBy('updatedAt').reverse().toArray())
     load()
+  }, [])
+  useEffect(() => {
+    ensureSettings().then(setSettings)
   }, [])
 
   const mitreOptions = useMitreTechniques()
@@ -271,6 +276,7 @@ export default function Objectives() {
         <EditObjectiveModal
           o={editing}
           mitreOptions={mitreOptions}
+          settings={settings}
           onClose={() => setEditing(null)}
           onSaved={(next) => {
             setItems((cur) => cur.map((x) => (x.id === next.id ? next : x)))
@@ -347,12 +353,14 @@ function ObjectiveCard({
 function EditObjectiveModal({
   o,
   mitreOptions,
+  settings,
   onClose,
   onSaved,
   onDeleted,
 }: {
   o: Objective
   mitreOptions: { technique: string; tactic: string; name: string }[]
+  settings: WorkbenchSettings
   onClose: () => void
   onSaved: (o: Objective) => void
   onDeleted: (id: string) => void
@@ -519,10 +527,11 @@ function EditObjectiveModal({
                   value={severity}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setSeverity(e.target.value as any)}
                 >
-                  <option value="low">low</option>
-                  <option value="medium">medium</option>
-                  <option value="high">high</option>
-                  <option value="critical">critical</option>
+                  {withCurrentOption(settings.severityOptions, severity).map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -532,10 +541,11 @@ function EditObjectiveModal({
                   value={urgency}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
                 >
-                  <option value="p0">p0 (urgent)</option>
-                  <option value="p1">p1 (within 60 days)</option>
-                  <option value="p2">p2 (within 120 days)</option>
-                  <option value="p3">p3 (backlog)</option>
+                  {withCurrentOption(settings.urgencyOptions, urgency).map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -608,11 +618,11 @@ function EditObjectiveModal({
                   value={status}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
                 >
-                  <option value="planned">planned</option>
-                  <option value="blocked">blocked</option>
-                  <option value="implemented">implemented</option>
-                  <option value="tuned">tuned</option>
-                  <option value="validated">validated</option>
+                  {withCurrentOption(settings.statusOptions, status).map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -622,10 +632,11 @@ function EditObjectiveModal({
                   value={telemetryReadiness}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
                 >
-                  <option value="unknown">unknown</option>
-                  <option value="available">available</option>
-                  <option value="partial">partial</option>
-                  <option value="missing">missing</option>
+                  {withCurrentOption(settings.telemetryReadinessOptions, telemetryReadiness).map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

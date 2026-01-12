@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { recordAuditEvent } from '../lib/audit'
@@ -8,6 +8,7 @@ import { useMitreTechniques } from '../lib/mitreData'
 import { TelemetryPicker } from '../lib/TelemetryPicker'
 import { telemetryDefaults, telemetryLabel } from '../lib/telemetryCatalog'
 import type { Objective } from '../lib/schemas'
+import { defaultSettingsSnapshot, ensureSettings, withCurrentOption } from '../lib/settings'
 
 export default function ObjectiveWizard() {
   const navigate = useNavigate()
@@ -16,6 +17,7 @@ export default function ObjectiveWizard() {
   const [mitre, setMitre] = useState<string>('T1003')
   const [tactic, setTactic] = useState<string>('Credential Access')
   const [mitreSearch, setMitreSearch] = useState('')
+  const [settings, setSettings] = useState(defaultSettingsSnapshot())
   const [status, setStatus] = useState<Objective['status']>('planned')
   const [telemetryReadiness, setTelemetryReadiness] = useState<Objective['telemetryReadiness']>('partial')
   const [rationale, setRationale] = useState('')
@@ -29,6 +31,18 @@ export default function ObjectiveWizard() {
   const [telemetryNotes, setTelemetryNotes] = useState('')
 
   const mitreOptions = useMitreTechniques()
+
+  useEffect(() => {
+    ensureSettings().then((loaded) => {
+      setSettings(loaded)
+      setStatus((cur) => (loaded.statusOptions.includes(cur) ? cur : loaded.statusOptions[0] ?? cur))
+      setTelemetryReadiness((cur) =>
+        loaded.telemetryReadinessOptions.includes(cur) ? cur : loaded.telemetryReadinessOptions[0] ?? cur,
+      )
+      setSeverity((cur) => (loaded.severityOptions.includes(cur) ? cur : loaded.severityOptions[0] ?? cur))
+      setUrgency((cur) => (loaded.urgencyOptions.includes(cur) ? cur : loaded.urgencyOptions[0] ?? cur))
+    })
+  }, [])
 
   const canSave = name.trim().length >= 3 && description.trim().length >= 3 && responsePlan.trim().length >= 10
 
@@ -189,10 +203,11 @@ export default function ObjectiveWizard() {
                 value={severity}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setSeverity(e.target.value as any)}
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
+                {withCurrentOption(settings.severityOptions, severity).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -202,10 +217,11 @@ export default function ObjectiveWizard() {
                 value={urgency}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
               >
-                <option value="p0">P0 (urgent)</option>
-                <option value="p1">P1 (within 60 days)</option>
-                <option value="p2">P2 (within 120 days)</option>
-                <option value="p3">P3 (backlog)</option>
+                {withCurrentOption(settings.urgencyOptions, urgency).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -376,11 +392,11 @@ export default function ObjectiveWizard() {
               value={status}
               onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
             >
-                <option value="planned">Planned</option>
-                <option value="blocked">Blocked</option>
-                <option value="implemented">Implemented</option>
-                <option value="tuned">Tuned</option>
-                <option value="validated">Validated</option>
+                {withCurrentOption(settings.statusOptions, status).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -390,10 +406,11 @@ export default function ObjectiveWizard() {
               value={telemetryReadiness}
               onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
             >
-                <option value="unknown">Unknown</option>
-                <option value="available">Available</option>
-                <option value="partial">Partial</option>
-                <option value="missing">Missing</option>
+                {withCurrentOption(settings.telemetryReadinessOptions, telemetryReadiness).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

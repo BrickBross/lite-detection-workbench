@@ -2,8 +2,6 @@ import { z } from 'zod'
 
 export const Platform = z.enum(['exabeam_cim', 'crowdstrike_siem', 'crowdstrike_edr', 'sentinel_kql', 'sigma_generic'])
 
-export const ObjectiveStatus = z.enum(['planned', 'blocked', 'implemented', 'tuned', 'validated'])
-
 export const MitreRef = z.object({
   tactic: z.string().min(2),
   technique: z.string().min(2),
@@ -23,14 +21,14 @@ export const ObjectiveSchema = z.object({
   name: z.string().min(3),
   description: z.string().min(3),
   mitre: z.array(MitreRef).min(1),
-  status: ObjectiveStatus,
-  telemetryReadiness: z.enum(['unknown', 'available', 'partial', 'missing']),
+  status: z.string().min(1),
+  telemetryReadiness: z.string().min(1),
   rationale: z.string().optional(),
   responsePlan: z.string().min(10).optional(),
   externalReferences: z.array(z.string().min(3)).default([]),
   owner: z.string().optional(),
-  severity: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
-  urgency: z.enum(['p0', 'p1', 'p2', 'p3']).default('p2'),
+  severity: z.string().min(1).default('medium'),
+  urgency: z.string().min(1).default('p2'),
   requiredTelemetrySources: z.array(z.string()).default([]),
   requiredTelemetrySourceOverrides: z.record(TelemetrySourcePropsSchema).default({}),
   otherTelemetrySources: z.array(z.string()).default([]),
@@ -68,7 +66,7 @@ export const DetectionSchema = z.object({
   signalIds: z.array(z.string().regex(/^SIG-\d{4}$/)).default([]),
   platform: Platform,
   title: z.string().min(3),
-  severity: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+  severity: z.string().min(1).default('medium'),
   content: z.string().min(1),
   tuningNotes: z.string().optional(),
   falsePositives: z.string().optional(),

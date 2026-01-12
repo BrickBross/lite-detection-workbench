@@ -4,12 +4,14 @@ import { recordAuditEvent } from '../lib/audit'
 import { isoNow, nextId } from '../lib/ids'
 import type { Detection, Objective } from '../lib/schemas'
 import { Platform } from '../lib/schemas'
+import { defaultSettingsSnapshot, ensureSettings, withCurrentOption, type WorkbenchSettings } from '../lib/settings'
 
 export default function Detections() {
   const [detections, setDetections] = useState<Detection[]>([])
   const [objectives, setObjectives] = useState<Objective[]>([])
   const [editing, setEditing] = useState<Detection | null>(null)
   const [creating, setCreating] = useState(false)
+  const [settings, setSettings] = useState<WorkbenchSettings>(defaultSettingsSnapshot())
 
   useEffect(() => {
     const load = async () => {
@@ -17,6 +19,9 @@ export default function Detections() {
       setObjectives(await db.objectives.toArray())
     }
     load()
+  }, [])
+  useEffect(() => {
+    ensureSettings().then(setSettings)
   }, [])
 
   const objMap = useMemo(() => new Map(objectives.map((o) => [o.id, o.name])), [objectives])
@@ -87,8 +92,8 @@ export default function Detections() {
         </div>
       )}
 
-      {editing ? <EditModal d={editing} onClose={() => setEditing(null)} /> : null}
-      {creating ? <CreateModal objectives={objectives} onClose={() => setCreating(false)} /> : null}
+      {editing ? <EditModal d={editing} settings={settings} onClose={() => setEditing(null)} /> : null}
+      {creating ? <CreateModal objectives={objectives} settings={settings} onClose={() => setCreating(false)} /> : null}
     </div>
   )
 }
@@ -113,7 +118,7 @@ function ScorePill({ score }: { score: number }) {
   )
 }
 
-function EditModal({ d, onClose }: { d: Detection; onClose: () => void }) {
+function EditModal({ d, settings, onClose }: { d: Detection; settings: WorkbenchSettings; onClose: () => void }) {
   const [title, setTitle] = useState(d.title)
   const [severity, setSeverity] = useState(d.severity)
   const [content, setContent] = useState(d.content)
@@ -182,7 +187,7 @@ function EditModal({ d, onClose }: { d: Detection; onClose: () => void }) {
                 value={severity}
                 onChange={(e: any) => setSeverity(e.target.value)}
               >
-                {['low', 'medium', 'high', 'critical'].map((s) => (
+                {withCurrentOption(settings.severityOptions, severity).map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -252,12 +257,25 @@ function Textarea(props: any) {
   )
 }
 
-function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose: () => void }) {
+function CreateModal({
+  objectives,
+  settings,
+  onClose,
+}: {
+  objectives: Objective[]
+  settings: WorkbenchSettings
+  onClose: () => void
+}) {
   const [objectiveId, setObjectiveId] = useState(objectives[0]?.id ?? '')
   const [platform, setPlatform] = useState<Detection['platform']>('sigma_generic')
-  const [severity, setSeverity] = useState<Detection['severity']>('medium')
+  const [severity, setSeverity] = useState<Detection['severity']>(settings.severityOptions[0] ?? 'medium')
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('# New detection\n')
+
+  useEffect(() => {
+    if (!settings.severityOptions.length) return
+    setSeverity((cur) => (settings.severityOptions.includes(cur) ? cur : settings.severityOptions[0]))
+  }, [settings.severityOptions])
 
   const canSave = !!objectiveId && title.trim().length >= 3 && content.trim().length >= 1
 
@@ -341,7 +359,7 @@ function CreateModal({ objectives, onClose }: { objectives: Objective[]; onClose
                 value={severity}
                 onChange={(e: any) => setSeverity(e.target.value)}
               >
-                {['low', 'medium', 'high', 'critical'].map((s) => (
+                {withCurrentOption(settings.severityOptions, severity).map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
