@@ -31,6 +31,24 @@ export default function Objectives() {
     })
   }, [items, q])
 
+  const exportObjective = async (objective: Objective) => {
+    const json = JSON.stringify(objective, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${objective.id}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    await recordAuditEvent({
+      entityType: 'export',
+      action: 'export',
+      summary: `Exported ${objective.id}.json`,
+      meta: { entityType: 'objective', entityId: objective.id },
+    })
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -79,6 +97,13 @@ export default function Objectives() {
                 </div>
                 <div className="flex items-center gap-3 text-xs">
                   <div className="text-zinc-500">Updated {new Date(o.updatedAt).toLocaleString()}</div>
+                  <button
+                    type="button"
+                    onClick={() => exportObjective(o)}
+                    className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/60"
+                  >
+                    Export JSON
+                  </button>
                   <button
                     type="button"
                     onClick={() => setEditing(o)}
@@ -279,8 +304,8 @@ function EditObjectiveModal({
                     }}
                   >
                     {mitreOptions.map((t) => (
-                      <option key={t.technique} value={t.technique}>
-                        {t.technique} - {t.name}
+                      <option key={`${t.technique}|${t.tactic}`} value={t.technique}>
+                        {t.technique} - {t.name} ({t.tactic})
                       </option>
                     ))}
                   </select>

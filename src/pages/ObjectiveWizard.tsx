@@ -36,6 +36,14 @@ export default function ObjectiveWizard() {
     return mitreOptions.filter((x) => `${x.technique} ${x.name} ${x.tactic}`.toLowerCase().includes(q)).slice(0, 200)
   }, [mitreOptions, mitreSearch])
 
+  const mitreSelectOptions = useMemo(() => {
+    const selectedKey = `${mitre}|${tactic}`
+    if (!mitreSearch.trim()) return filteredMitreOptions
+    if (filteredMitreOptions.some((x) => `${x.technique}|${x.tactic}` === selectedKey)) return filteredMitreOptions
+    const selected = mitreOptions.find((x) => `${x.technique}|${x.tactic}` === selectedKey)
+    return selected ? [selected, ...filteredMitreOptions] : filteredMitreOptions
+  }, [filteredMitreOptions, mitreOptions, mitreSearch, mitre, tactic])
+
   const selectedTelemetry = useMemo(() => requiredTelemetrySources.map((id) => ({ id, defaults: telemetryDefaults(id) })), [requiredTelemetrySources])
 
   const setSelectedTelemetrySources = (next: string[]) => {
@@ -127,10 +135,10 @@ export default function ObjectiveWizard() {
                 value={severity}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setSeverity(e.target.value as any)}
               >
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
-                <option value="critical">critical</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
               </select>
             </div>
             <div>
@@ -140,10 +148,10 @@ export default function ObjectiveWizard() {
                 value={urgency}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setUrgency(e.target.value as any)}
               >
-                <option value="p0">p0 (urgent)</option>
-                <option value="p1">p1 (within 60 days)</option>
-                <option value="p2">p2 (within 120 days)</option>
-                <option value="p3">p3 (backlog)</option>
+                <option value="p0">P0 (urgent)</option>
+                <option value="p1">P1 (within 60 days)</option>
+                <option value="p2">P2 (within 120 days)</option>
+                <option value="p3">P3 (backlog)</option>
               </select>
             </div>
           </div>
@@ -157,23 +165,26 @@ export default function ObjectiveWizard() {
             placeholder="Search MITRE techniques (e.g., T1003, credential dumping)"
             className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600"
           />
+          <div className="mt-2 text-xs text-zinc-500">
+            {mitreSearch.trim() ? `Matches: ${filteredMitreOptions.length} (showing up to 200)` : `Techniques: ${mitreOptions.length}`}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <select
               className="rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
-              value={mitre}
+              value={`${mitre}|${tactic}`}
               onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                const t = mitreOptions.find((x) => x.technique === e.target.value)
-                setMitre(e.target.value)
-                if (t) setTactic(t.tactic)
+                const [technique, nextTactic] = e.target.value.split('|')
+                setMitre(technique)
+                setTactic(nextTactic ?? 'Unknown')
               }}
             >
-              {filteredMitreOptions.map((t) => (
-                <option key={t.technique} value={t.technique}>
-                  {t.technique} - {t.name}
+              {mitreSelectOptions.map((t) => (
+                <option key={`${t.technique}|${t.tactic}`} value={`${t.technique}|${t.tactic}`}>
+                  {t.technique} - {t.name} ({t.tactic})
                 </option>
               ))}
             </select>
-            <Input value={tactic} onChange={(e: ChangeEvent<HTMLInputElement>) => setTactic(e.target.value)} />
+            <Input value={tactic} readOnly title="Tactic is derived from the selected technique." />
           </div>
 
           <Label className="mt-3">Required telemetry sources</Label>
@@ -299,11 +310,11 @@ export default function ObjectiveWizard() {
                 value={status}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as any)}
               >
-                <option value="planned">planned</option>
-                <option value="blocked">blocked</option>
-                <option value="implemented">implemented</option>
-                <option value="tuned">tuned</option>
-                <option value="validated">validated</option>
+                <option value="planned">Planned</option>
+                <option value="blocked">Blocked</option>
+                <option value="implemented">Implemented</option>
+                <option value="tuned">Tuned</option>
+                <option value="validated">Validated</option>
               </select>
             </div>
             <div>
@@ -313,10 +324,10 @@ export default function ObjectiveWizard() {
                 value={telemetryReadiness}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setTelemetryReadiness(e.target.value as any)}
               >
-                <option value="unknown">unknown</option>
-                <option value="available">available</option>
-                <option value="partial">partial</option>
-                <option value="missing">missing</option>
+                <option value="unknown">Unknown</option>
+                <option value="available">Available</option>
+                <option value="partial">Partial</option>
+                <option value="missing">Missing</option>
               </select>
             </div>
           </div>

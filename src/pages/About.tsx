@@ -9,7 +9,7 @@ export default function About() {
           Lite Detection Workbench is a frontend-only, local-first web app for detection engineering. It helps you
           define <span className="text-zinc-200">objectives</span> (what to detect), attach{' '}
           <span className="text-zinc-200">signals</span> (telemetry), generate starter{' '}
-          <span className="text-zinc-200">detections</span> (Sigma/KQL/CrowdStrike/notes), and export a Git-ready
+          <span className="text-zinc-200">detections</span> (rules/queries/notes), and export a Git-ready
           repository.
         </p>
       </div>

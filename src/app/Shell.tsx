@@ -1,13 +1,12 @@
 import { PropsWithChildren } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { Boxes, Clock, Download, Info, Shield, Wand2 } from 'lucide-react'
+import { Boxes, Clock, Info, Shield, Wand2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const nav = [
   { to: '/', label: 'Objectives', icon: Boxes },
   { to: '/mitre', label: 'MITRE', icon: Shield },
   { to: '/wizard', label: 'New Objective', icon: Wand2 },
-  { to: '/export', label: 'Export', icon: Download },
   { to: '/history', label: 'History', icon: Clock },
   { to: '/about', label: 'About', icon: Info },
 ]
