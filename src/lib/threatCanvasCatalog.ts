@@ -3374,6 +3374,40 @@ const SERVICE_CATALOG_RAW = [
     "iconKey": "onprem:On-Prem"
   },
   {
+    "provider": "onprem",
+    "category": "On-Prem",
+    "name": "Windows Event Logs",
+    "id": "873d19d7-9921-4437-851d-65a711d5a1d1",
+    "kind": "process",
+    "defaultProps": {
+      "provider": "onprem",
+      "serviceCategory": "On-Prem",
+      "serviceId": "873d19d7-9921-4437-851d-65a711d5a1d1",
+      "dataClassification": "Internal",
+      "internetExposed": false,
+      "authRequired": true,
+      "loggingEnabled": true
+    },
+    "iconKey": "onprem:On-Prem"
+  },
+  {
+    "provider": "onprem",
+    "category": "On-Prem",
+    "name": "Linux Syslog",
+    "id": "25c46d3c-994e-4666-abfb-f93d0176dfc6",
+    "kind": "process",
+    "defaultProps": {
+      "provider": "onprem",
+      "serviceCategory": "On-Prem",
+      "serviceId": "25c46d3c-994e-4666-abfb-f93d0176dfc6",
+      "dataClassification": "Internal",
+      "internetExposed": false,
+      "authRequired": true,
+      "loggingEnabled": true
+    },
+    "iconKey": "onprem:On-Prem"
+  },
+  {
     "provider": "aws",
     "category": "AI & ML",
     "name": "Amazon Bedrock",
