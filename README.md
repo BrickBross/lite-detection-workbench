@@ -18,7 +18,7 @@ Lite Detection Workbench is a frontend-only, local-first workspace for defining 
 ## What you can do
 
 - Create detection objectives with MITRE mapping (lite)
-- Capture telemetry requirements, readiness, and detailed source attributes
+- Capture telemetry requirements, readiness, and detailed source attributes.
 - Record response expectations (how to respond + who to contact)
 - Track severity, urgency, and status with custom labels
 - Add external references and query notes to support investigations
