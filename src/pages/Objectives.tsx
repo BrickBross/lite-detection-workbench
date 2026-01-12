@@ -14,6 +14,7 @@ export default function Objectives() {
   const [editing, setEditing] = useState<Objective | null>(null)
   const [q, setQ] = useState('')
   const importInputRef = useRef<HTMLInputElement | null>(null)
+  const [groupBy, setGroupBy] = useState<'none' | 'mitre' | 'telemetry'>('none')
 
   useEffect(() => {
     const load = async () => setItems(await db.objectives.orderBy('updatedAt').reverse().toArray())
@@ -21,6 +22,11 @@ export default function Objectives() {
   }, [])
 
   const mitreOptions = useMitreTechniques()
+  const mitreNameByTechnique = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const r of mitreOptions) if (!map.has(r.technique)) map.set(r.technique, r.name)
+    return map
+  }, [mitreOptions])
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase()
     if (!query) return items
@@ -33,6 +39,30 @@ export default function Objectives() {
       return hay.includes(query)
     })
   }, [items, q])
+
+  const grouped = useMemo(() => {
+    if (groupBy === 'none') return null
+
+    const groups = new Map<string, Objective[]>()
+    const add = (key: string, obj: Objective) => groups.set(key, [...(groups.get(key) ?? []), obj])
+
+    if (groupBy === 'mitre') {
+      for (const o of filtered) {
+        const keys = new Set<string>((o.mitre ?? []).map((m) => m.technique).filter(Boolean))
+        for (const k of keys) add(k, o)
+      }
+    } else if (groupBy === 'telemetry') {
+      for (const o of filtered) {
+        const keys = new Set<string>((o.requiredTelemetrySources ?? []).filter(Boolean))
+        if (keys.size === 0) add('(none)', o)
+        else for (const k of keys) add(k, o)
+      }
+    }
+
+    return Array.from(groups.entries())
+      .map(([key, objs]) => ({ key, items: objs }))
+      .sort((a, b) => a.key.localeCompare(b.key))
+  }, [filtered, groupBy])
 
   const exportObjective = async (objective: Objective) => {
     const telemetrySourcesDetailed = (objective.requiredTelemetrySources ?? []).map((id) => {
@@ -154,6 +184,16 @@ export default function Objectives() {
             placeholder="Search objectives (id, name, MITRE, status...)"
             className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--border-strong))] md:w-[340px]"
           />
+          <select
+            value={groupBy}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setGroupBy(e.target.value as any)}
+            className="w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 text-sm md:w-[220px]"
+            aria-label="Group objectives by"
+          >
+            <option value="none">Group: none</option>
+            <option value="mitre">Group: MITRE technique</option>
+            <option value="telemetry">Group: telemetry source</option>
+          </select>
           <Link
             to="/wizard"
             className="rounded-2xl bg-[rgb(var(--accent))] px-4 py-2 text-sm font-semibold text-[rgb(var(--accent-fg))] hover:bg-[rgb(var(--accent)/0.9)]"
@@ -187,49 +227,41 @@ export default function Objectives() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-6 text-sm text-[rgb(var(--muted))]">No matches.</div>
-      ) : (
+      ) : groupBy === 'none' ? (
         <div className="grid gap-3">
           {filtered.map((o) => (
-            <div key={o.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
-              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <div className="text-xs text-[rgb(var(--faint))]">{o.id}</div>
-                  <div className="text-lg font-semibold">{o.name}</div>
-                  <div className="mt-1 text-sm text-[rgb(var(--muted))]">{o.description}</div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                    <Badge>{o.status}</Badge>
-                    <Badge>{o.telemetryReadiness}</Badge>
-                    <Badge>{o.severity}</Badge>
-                    <Badge>{o.urgency}</Badge>
-                    {(o.requiredTelemetrySources ?? []).slice(0, 4).map((s) => (
-                      <Badge key={s}>{telemetryLabel(s)}</Badge>
-                    ))}
-                    {(o.requiredTelemetrySources ?? []).length > 4 ? <Badge>+{(o.requiredTelemetrySources ?? []).length - 4} more</Badge> : null}
+            <ObjectiveCard key={o.id} o={o} onEdit={() => setEditing(o)} onExport={() => exportObjective(o)} />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {(grouped ?? []).map((g) => {
+            const label =
+              groupBy === 'mitre'
+                ? `${g.key}${mitreNameByTechnique.get(g.key) ? ` — ${mitreNameByTechnique.get(g.key)}` : ''}`
+                : groupBy === 'telemetry'
+                  ? g.key === '(none)'
+                    ? '(no required telemetry sources)'
+                    : telemetryLabel(g.key)
+                  : g.key
+            return (
+              <div key={g.key} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{label}</div>
+                    <div className="mt-1 text-xs text-[rgb(var(--faint))]">
+                      {g.items.length} objective{g.items.length === 1 ? '' : 's'}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs">
-                  <div className="text-[rgb(var(--faint))]">Updated {new Date(o.updatedAt).toLocaleString()}</div>
-                  <button
-                    type="button"
-                    onClick={() => exportObjective(o)}
-                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
-                  >
-                    Export JSON
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(o)}
-                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
-                  >
-                    Edit
-                  </button>
+                <div className="mt-3 grid gap-3">
+                  {g.items.map((o) => (
+                    <ObjectiveCard key={`${g.key}:${o.id}`} o={o} onEdit={() => setEditing(o)} onExport={() => exportObjective(o)} />
+                  ))}
                 </div>
               </div>
-              <div className="mt-3 text-xs text-[rgb(var(--faint))]">
-                MITRE: {o.mitre.map((m) => `${m.tactic}/${m.technique}`).join(', ')}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -257,6 +289,56 @@ function Badge({ children }: { children: any }) {
     <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface2))] px-3 py-1 text-[rgb(var(--text-muted))]">
       {children}
     </span>
+  )
+}
+
+function ObjectiveCard({
+  o,
+  onEdit,
+  onExport,
+}: {
+  o: Objective
+  onEdit: () => void
+  onExport: () => void
+}) {
+  return (
+    <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="text-xs text-[rgb(var(--faint))]">{o.id}</div>
+          <div className="text-lg font-semibold">{o.name}</div>
+          <div className="mt-1 text-sm text-[rgb(var(--muted))]">{o.description}</div>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <Badge>{o.status}</Badge>
+            <Badge>{o.telemetryReadiness}</Badge>
+            <Badge>{o.severity}</Badge>
+            <Badge>{o.urgency}</Badge>
+            {(o.requiredTelemetrySources ?? []).slice(0, 4).map((s) => (
+              <Badge key={s}>{telemetryLabel(s)}</Badge>
+            ))}
+            {(o.requiredTelemetrySources ?? []).length > 4 ? <Badge>+{(o.requiredTelemetrySources ?? []).length - 4} more</Badge> : null}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs">
+          <div className="text-[rgb(var(--faint))]">Updated {new Date(o.updatedAt).toLocaleString()}</div>
+          <button
+            type="button"
+            onClick={onExport}
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+          >
+            Export JSON
+          </button>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface2)/0.3)] px-3 py-2 text-xs text-[rgb(var(--text-muted))] hover:bg-[rgb(var(--surface2)/0.6)]"
+          >
+            Edit
+          </button>
+        </div>
+      </div>
+      <div className="mt-3 text-xs text-[rgb(var(--faint))]">MITRE: {(o.mitre ?? []).map((m) => `${m.tactic}/${m.technique}`).join(', ')}</div>
+    </div>
   )
 }
 
